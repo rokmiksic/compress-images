@@ -5,6 +5,9 @@ on:
     tags: ['v*']
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,3 +24,8 @@ jobs:
         with:
           name: compress-images-arch-package
           path: packaging/*.pkg.tar.zst
+      - name: Attach package to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packaging/*.pkg.tar.zst
