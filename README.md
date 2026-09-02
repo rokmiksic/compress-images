@@ -2,6 +2,8 @@
 
 Safe batch image conversion and compression for Arch Linux. Originals are never overwritten. The GTK4 application follows the desktop theme and supports English, Slovenian, German, Croatian, Serbian and French.
 
+This project is free and open-source software released under the [MIT License](LICENSE). Contributions, forks, bug reports and pull requests are welcome.
+
 ## Usage
 
 ```text
@@ -36,3 +38,5 @@ For AUR, create a matching Git tag such as `v0.1.0`, then run `makepkg -si`. Aft
 ## Plasma launcher
 
 The user installation includes `~/.local/share/applications/compress-images.desktop`. Its `Exec` and `TryExec` entries use the absolute path to `~/.local/bin/compress-images-gui`, so Plasma does not depend on fish's interactive `PATH`. If the launcher is not immediately visible after an update, log out and in or restart Plasma's application menu.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and pull request guidelines.
