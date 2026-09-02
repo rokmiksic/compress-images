@@ -1,0 +1,11 @@
+Package: compress-images
+Version: VERSION
+Section: graphics
+Priority: optional
+Architecture: all
+Maintainer: rokmiksic
+Homepage: https://github.com/rokmiksic/compress-images
+Depends: python3, python3-gi, gir1.2-gtk-4.0, imagemagick, ffmpeg, libheif1
+Description: Safe batch image conversion and compression
+ GTK4 application and CLI for converting and compressing images while
+ preserving originals and enforcing a real per-file size limit.

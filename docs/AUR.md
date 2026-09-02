@@ -9,3 +9,7 @@
 For a release archive instead of a git source, use a versioned GitHub tarball in `source`, run `updpkgsums`, and commit the resulting checksum. Do not leave `sha256sums=('SKIP')` in a production AUR package unless the source is intentionally a git checkout.
 
 The package installs the GUI launcher at `/usr/bin/compress-images-gui`, the CLI at `/usr/bin/compress-images`, shared Python modules under `/usr/lib/compress-images`, and the desktop entry under `/usr/share/applications/`.
+
+## Other Linux distributions
+
+GitHub Releases also provide a Debian/Ubuntu `.deb` package. Fedora and openSUSE would use an RPM package, while Flatpak publication requires a separate Flathub review and a sandbox-specific dependency setup because the application calls ImageMagick, FFmpeg and libheif.
