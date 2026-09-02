@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Compress Images
+Comment=Batch convert and compress images safely
+Exec=/usr/bin/compress-images-gui
+TryExec=/usr/bin/compress-images-gui
+Icon=image-x-generic
+Terminal=false
+Type=Application
+Categories=Graphics;
+Keywords=image;photo;compress;convert;

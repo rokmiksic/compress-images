@@ -1,0 +1,17 @@
+pkgbase = compress-images
+	pkgdesc = Safe batch image conversion and compression with GTK4 GUI
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/rokmiksic/compress-images
+	arch = any
+	license = MIT
+	depends = python
+	depends = python-gobject
+	depends = gtk4
+	depends = imagemagick
+	depends = ffmpeg
+	depends = libheif
+	source = git+https://github.com/rokmiksic/compress-images.git#tag=v0.1.0
+	sha256sums = SKIP
+
+pkgname = compress-images

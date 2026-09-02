@@ -1,0 +1,18 @@
+pkgname=compress-images
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Safe batch image conversion and compression with GTK4 GUI'
+arch=('any')
+url='https://github.com/rokmiksic/compress-images'
+license=('MIT')
+depends=('python' 'python-gobject' 'gtk4' 'imagemagick' 'ffmpeg' 'libheif')
+source=("git+https://github.com/rokmiksic/compress-images.git#tag=v$pkgver")
+sha256sums=('SKIP')
+
+package() {
+  install -Dm755 "$srcdir/compress-images/src/compress_images_core.py" "$pkgdir/usr/lib/compress-images/compress_images_core.py"
+  install -Dm755 "$srcdir/compress-images/src/compress_images_gui.py" "$pkgdir/usr/lib/compress-images/compress_images_gui.py"
+  install -Dm755 "$srcdir/compress-images/src/compress-images-gui" "$pkgdir/usr/bin/compress-images-gui"
+  install -Dm755 "$srcdir/compress-images/src/compress-images" "$pkgdir/usr/bin/compress-images"
+  install -Dm644 "$srcdir/compress-images/packaging/compress-images.desktop" "$pkgdir/usr/share/applications/compress-images.desktop"
+}
