@@ -1,0 +1,23 @@
+name: Build Arch package
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build package
+        run: |
+          pacman -Sy --noconfirm --needed git
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          su builder -c 'cd "$GITHUB_WORKSPACE/packaging" && makepkg --noconfirm --syncdeps --cleanbuild'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compress-images-arch-package
+          path: packaging/*.pkg.tar.zst

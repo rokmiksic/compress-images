@@ -2,7 +2,10 @@
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+module_dir = Path(__file__).resolve().parent
+if not (module_dir / "compress_images_core.py").exists():
+    module_dir = Path("/usr/lib/compress-images")
+sys.path.insert(0, str(module_dir))
 from compress_images_core import main
 
 raise SystemExit(main())

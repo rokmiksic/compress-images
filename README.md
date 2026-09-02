@@ -11,6 +11,8 @@ compress-images 0.5 --format webp
 compress-images-gui           # GTK4 application
 ```
 
+The latest source and Arch package build are available from [GitHub](https://github.com/rokmiksic/compress-images). Until AUR registration reopens, install the package from the repository with `makepkg -si`, or download the package asset from the GitHub Release.
+
 The GUI supports selecting a complete folder or individual files, a real per-file size limit, JPG/WEBP/AVIF/PNG output, recursive folders, and collision-safe names. Output is written below `compressed/`.
 
 The size field accepts a decimal number and the adjacent unit selector accepts `MB` or `KB` (for example `0.5 MB`, `500 KB`, or `750 KB`). The limit is checked against the actual encoded file size.
