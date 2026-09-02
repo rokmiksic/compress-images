@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+module_dir = Path(__file__).resolve().parent
+if not (module_dir / "compress_images_gui.py").exists():
+    module_dir = Path("/usr/lib/compress-images")
+sys.path.insert(0, str(module_dir))
+from compress_images_gui import App
+
+raise SystemExit(App().run(sys.argv))
