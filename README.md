@@ -13,6 +13,8 @@ compress-images 0.5 --format webp
 compress-images-gui           # GTK4 application
 ```
 
+The command-line interface uses English prompts and messages. The GUI language can be changed independently.
+
 The latest source and Arch package build are available from [GitHub](https://github.com/rokmiksic/compress-images). Until AUR registration reopens, install the package from the repository with `makepkg -si`, or download the `.pkg.tar.zst` asset from the GitHub Release.
 
 For Debian, Ubuntu, Linux Mint and related distributions, download the `.deb` asset from the GitHub Release and install it with `sudo apt install ./compress-images_VERSION_all.deb`. The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.

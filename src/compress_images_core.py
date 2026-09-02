@@ -37,25 +37,25 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="compress-images",
         description=(
-            "Batch pretvori slike v JPG in poskrbi, da je vsaka izhodna datoteka "
-            "manjsa ali enaka podani velikosti v MB."
+            "Batch convert images and ensure every output file is at or below "
+            "the requested size in MB."
         ),
     )
     parser.add_argument(
         "max_size_mb",
         nargs="?",
-        help="Najvecja dovoljena velikost posamezne slike v MB, npr. 0.5, 1, 1.5 ali 2",
+        help="Maximum allowed size per image in MB, for example 0.5, 1, 1.5 or 2",
     )
     parser.add_argument(
         "--recursive",
         action="store_true",
-        help="Preglej tudi podmape in znotraj 'compressed/' ohrani strukturo map.",
+        help="Scan subdirectories and preserve their structure below 'compressed/'.",
     )
     parser.add_argument(
         "--format",
         choices=("jpg", "webp", "avif", "png"),
         default="jpg",
-        help="Izhodni format: jpg, webp, avif ali png (privzeto: jpg).",
+        help="Output format: jpg, webp, avif or png (default: jpg).",
     )
     return parser.parse_args()
 
@@ -65,19 +65,19 @@ def parse_size_mb(raw: str) -> float:
     try:
         size_mb = float(value)
     except ValueError as exc:
-        raise ValueError("Vnesi veljavno decimalno stevilo, npr. 0.5, 1 ali 1.5.") from exc
+        raise ValueError("Enter a valid decimal number, for example 0.5, 1 or 1.5.") from exc
     if not math.isfinite(size_mb) or size_mb <= 0:
-        raise ValueError("Velikost mora biti pozitivno stevilo, vecje od 0.")
+        raise ValueError("Size must be a positive number greater than zero.")
     return size_mb
 
 
 def prompt_for_size_mb() -> float:
     while True:
-        raw = input("Najvecja dovoljena velikost posamezne slike v MB: ").strip()
+        raw = input("Maximum allowed size per image in MB: ").strip()
         try:
             return parse_size_mb(raw)
         except ValueError as exc:
-            print(f"Napaka: {exc}", file=sys.stderr)
+            print(f"Error: {exc}", file=sys.stderr)
 
 
 def ensure_dependencies() -> None:
@@ -86,8 +86,8 @@ def ensure_dependencies() -> None:
     if missing:
         names = ", ".join(missing)
         raise SystemExit(
-            f"Manjkajo obvezna orodja: {names}\n"
-            "Na Arch/CachyOS jih lahko namestis z: sudo pacman -S imagemagick python"
+            f"Required tools are missing: {names}\n"
+            "On Arch/CachyOS, install them with: sudo pacman -S imagemagick python"
         )
 
 
@@ -163,8 +163,8 @@ def prepare_input(source: Path, temp_dir: Path) -> Path:
     decoders = get_heif_decoders()
     if not decoders:
         raise RuntimeError(
-            "Za HEIC/HEIF/AVIF ni na voljo niti 'heif-convert' niti 'ffmpeg'. "
-            "Namesti enega od njiju."
+            "Neither 'heif-convert' nor 'ffmpeg' is available for HEIC/HEIF/AVIF. "
+            "Install one of them."
         )
 
     errors: list[str] = []
@@ -174,12 +174,12 @@ def prepare_input(source: Path, temp_dir: Path) -> Path:
             if decoder == "heif-convert":
                 run_command(
                     ["heif-convert", str(source), str(decoded)],
-                    f"Napaka pri dekodiranju '{source.name}' z heif-convert",
+                    f"Failed to decode '{source.name}' with heif-convert",
                 )
             else:
                 run_command(
                     ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source), str(decoded)],
-                    f"Napaka pri dekodiranju '{source.name}' z ffmpeg",
+                    f"Failed to decode '{source.name}' with ffmpeg",
                 )
             return decoded
         except RuntimeError as exc:
@@ -197,7 +197,7 @@ def get_dimensions(image_path: Path) -> tuple[int, int]:
     )
     if completed.returncode != 0:
         details = completed.stderr.strip() or completed.stdout.strip() or "identify failed"
-        raise RuntimeError(f"Napaka pri branju dimenzij: {details}")
+        raise RuntimeError(f"Failed to read image dimensions: {details}")
     raw_width, raw_height = completed.stdout.strip().split()
     return int(raw_width), int(raw_height)
 
@@ -226,7 +226,7 @@ def encode_candidate(source: Path, destination: Path, width: int, height: int, q
         "webp:method=6",
         str(destination),
     ]
-    run_command(args, f"Napaka pri ustvarjanju '{destination.name}'")
+    run_command(args, f"Failed to create '{destination.name}'")
     return destination.stat().st_size
 
 
@@ -309,7 +309,7 @@ def compress_image(source: Path, destination: Path, max_bytes: int, output_forma
                 return best_size
 
             if width <= 1 or height <= 1:
-                raise RuntimeError("Ciljne velikosti ni bilo mogoce doseci.")
+                raise RuntimeError("Could not reach the requested target size.")
 
             width = max(1, int(width * RESIZE_FACTOR))
             height = max(1, int(height * RESIZE_FACTOR))
@@ -344,7 +344,7 @@ def main() -> int:
         try:
             max_size_mb = parse_size_mb(args.max_size_mb)
         except ValueError as exc:
-            print(f"Napaka: {exc}", file=sys.stderr)
+            print(f"Error: {exc}", file=sys.stderr)
             return 2
 
     max_bytes = max(1, int(max_size_mb * 1024 * 1024))
