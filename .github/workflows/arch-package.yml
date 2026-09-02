@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build package
         run: |
-          pacman -Sy --noconfirm --needed git
+          pacman -Sy --noconfirm --needed git python python-gobject gtk4 imagemagick ffmpeg libheif
           useradd -m builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
           su builder -c 'cd "$GITHUB_WORKSPACE/packaging" && makepkg --noconfirm --syncdeps --cleanbuild'
