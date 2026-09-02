@@ -1,5 +1,5 @@
 pkgname=compress-images
-pkgver=0.1.4
+pkgver=0.1.6
 pkgrel=1
 pkgdesc='Safe batch image conversion and compression with GTK4 GUI'
 arch=('any')
