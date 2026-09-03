@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 
@@ -152,7 +153,7 @@ def run_command(args: list[str], error_context: str) -> None:
     if completed.returncode != 0:
         stderr = completed.stderr.strip()
         stdout = completed.stdout.strip()
-        details = stderr or stdout or "brez dodatnega izpisa"
+        details = stderr or stdout or "no additional output"
         raise RuntimeError(f"{error_context}: {details}")
 
 
@@ -242,8 +243,15 @@ def find_best_candidate(
 ) -> tuple[Path, int] | tuple[None, None]:
     best_path: Path | None = None
     best_quality: int | None = None
+
+    # Most images fit at the starting quality; avoid a full binary search in that case.
+    initial_path = temp_dir / f"candidate_q{max_quality}.{output_format}"
+    initial_size = encode_candidate(source, initial_path, width, height, max_quality, output_format)
+    if initial_size <= max_bytes:
+        return initial_path, initial_size
+
     low = min_quality
-    high = max_quality
+    high = max_quality - 1
 
     while low <= high:
         quality = (low + high) // 2
@@ -259,9 +267,7 @@ def find_best_candidate(
     if best_path is None or best_quality is None:
         return None, None
 
-    final_copy = temp_dir / f"best_q{best_quality}.{output_format}"
-    shutil.copy2(best_path, final_copy)
-    return final_copy, final_copy.stat().st_size
+    return best_path, best_path.stat().st_size
 
 
 def compress_image(source: Path, destination: Path, max_bytes: int, output_format: str = "jpg") -> int:
@@ -313,6 +319,44 @@ def compress_image(source: Path, destination: Path, max_bytes: int, output_forma
 
             width = max(1, int(width * RESIZE_FACTOR))
             height = max(1, int(height * RESIZE_FACTOR))
+
+
+def compress_batch(
+    images: list[Path],
+    source_root: Path,
+    output_root: Path,
+    recursive: bool,
+    max_bytes: int,
+    output_format: str,
+    on_result=None,
+) -> list[tuple[int, Path, Path, int | None, Exception | None]]:
+    """Compress a batch with bounded parallelism while reserving names first."""
+    reserved_paths: set[Path] = set()
+    jobs = [
+        (
+            index,
+            source,
+            make_output_path(source, source_root, output_root, recursive, reserved_paths, output_format),
+        )
+        for index, source in enumerate(images, start=1)
+    ]
+    worker_count = min(len(jobs), max(1, min(os.cpu_count() or 2, 4)))
+    results: list[tuple[int, Path, Path, int | None, Exception | None]] = []
+    with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="compress") as executor:
+        futures = {
+            executor.submit(compress_image, source, destination, max_bytes, output_format): (index, source, destination)
+            for index, source, destination in jobs
+        }
+        for future in as_completed(futures):
+            index, source, destination = futures[future]
+            try:
+                result = (index, source, destination, future.result(), None)
+            except Exception as exc:
+                result = (index, source, destination, None, exc)
+            results.append(result)
+            if on_result is not None:
+                on_result(result)
+    return sorted(results, key=lambda item: item[0])
 
 
 def format_bytes(size: int) -> str:
@@ -370,19 +414,14 @@ def main() -> int:
     skipped = 0
     total_original = 0
     total_compressed = 0
-    reserved_paths: set[Path] = set()
-
-    for index, source in enumerate(images, start=1):
+    results = compress_batch(images, cwd, output_root, args.recursive, max_bytes, args.format)
+    for index, source, destination, compressed_size, error in results:
         original_size = source.stat().st_size
         total_original += original_size
-        destination = make_output_path(source, cwd, output_root, args.recursive, reserved_paths, args.format)
-        try:
-            compressed_size = compress_image(source, destination, max_bytes, args.format)
-        except Exception as exc:
+        if error is not None:
             failed += 1
-            print(f"[{index}/{len(images)}] {source.name} -> FAILED ({exc})")
+            print(f"[{index}/{len(images)}] {source.name} -> FAILED ({error})")
             continue
-
         converted += 1
         total_compressed += compressed_size
         print(

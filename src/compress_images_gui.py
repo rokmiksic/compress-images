@@ -13,10 +13,9 @@ from gi.repository import GLib, Gtk
 
 from compress_images_core import (
     SUPPORTED_EXTENSIONS,
-    compress_image,
+    compress_batch,
     format_bytes,
     gather_images,
-    make_output_path,
     parse_size_mb,
 )
 
@@ -212,14 +211,24 @@ class App(Gtk.Application):
         else:
             images = [p for p in self.source_paths if p.suffix.lower() in SUPPORTED_EXTENSIONS and p.is_file()]
             root = Path(os.path.commonpath([str(p.parent) for p in images])) if images else Path.cwd(); output_root = root / "compressed"; recursive = True
-        converted = failed = 0; original = compressed = 0; reserved = set(); lines = [f"{tx['found']} {len(images)}"]
-        for index, source in enumerate(images, 1):
-            original += source.stat().st_size; dest = make_output_path(source, root, output_root, recursive, reserved, fmt)
-            try:
-                size = compress_image(source, dest, max_bytes, fmt); compressed += size; converted += 1; lines.append(f"[{index}/{len(images)}] {source.name} -> {dest.name} | {format_bytes(source.stat().st_size)} -> {format_bytes(size)}")
-            except Exception as exc:
-                failed += 1; lines.append(f"[{index}/{len(images)}] {source.name} -> {tx['error']}: {exc}")
-            GLib.idle_add(self.status.set_label, lines[-1])
+        converted = failed = 0; original = compressed = 0; lines = [f"{tx['found']} {len(images)}"]
+
+        def report(result):
+            index, source, destination, size, error = result
+            if error is not None:
+                line = f"[{index}/{len(images)}] {source.name} -> {tx['error']}: {error}"
+            else:
+                line = f"[{index}/{len(images)}] {source.name} -> {destination.name} | {format_bytes(source.stat().st_size)} -> {format_bytes(size)}"
+            lines.append(line)
+            GLib.idle_add(self.status.set_label, line)
+
+        results = compress_batch(images, root, output_root, recursive, max_bytes, fmt, report)
+        for _, source, _, size, error in results:
+            original += source.stat().st_size
+            if error is not None:
+                failed += 1
+            else:
+                converted += 1; compressed += size
         summary = "\n".join(lines[-min(len(lines), 8):] + [f"\n{tx['done']}: {converted} {tx['converted']}, {failed} {tx['failed']}", f"{tx['original']}: {format_bytes(original)} | {tx['saved']}: {format_bytes(original - compressed)}"])
         GLib.idle_add(self.finish, summary)
 

@@ -1,5 +1,5 @@
 pkgname=compress-images
-pkgver=0.1.8
+pkgver=0.1.9
 pkgrel=1
 pkgdesc='Safe batch image conversion and compression with GTK4 GUI'
 arch=('any')
@@ -15,4 +15,8 @@ package() {
   install -Dm755 "$srcdir/compress-images/src/compress-images-gui" "$pkgdir/usr/bin/compress-images-gui"
   install -Dm755 "$srcdir/compress-images/src/compress-images" "$pkgdir/usr/bin/compress-images"
   install -Dm644 "$srcdir/compress-images/packaging/compress-images.desktop" "$pkgdir/usr/share/applications/compress-images.desktop"
+  for size in 16 32 48 64 128 256 512; do
+    install -Dm644 "$srcdir/compress-images/assets/icons/compress-images-${size}.png" \
+      "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/com.github.compress-images.png"
+  done
 }

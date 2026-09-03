@@ -23,6 +23,8 @@ The GUI supports selecting a complete folder or individual files, a real per-fil
 
 The size field accepts a decimal number and the adjacent unit selector accepts `MB` or `KB` (for example `0.5 MB`, `500 KB`, or `750 KB`). The limit is checked against the actual encoded file size.
 
+Batch processing uses bounded parallel workers and skips the full quality search when the first high-quality candidate already fits the limit. The application icon is included in standard Linux theme sizes.
+
 ## Dependencies
 
 `python`, `python-gobject`, `gtk4`, `imagemagick`, `ffmpeg`, and `libheif`. ImageMagick performs orientation correction, color normalization, metadata stripping, resizing and encoding; FFmpeg/libheif provide broad HEIC/HEIF/AVIF decoding.
