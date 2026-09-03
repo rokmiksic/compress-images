@@ -19,7 +19,7 @@ from compress_images_core import (
     parse_size_mb,
 )
 
-SETTINGS_PATH = Path.home() / ".config" / "compress-images" / "settings.json"
+SETTINGS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "compress-images" / "settings.json"
 DEFAULT_SETTINGS = {"language": "English", "unit": "MB", "format": "JPG", "recursive": True, "limit": "1"}
 
 
@@ -34,7 +34,9 @@ def load_settings():
 def save_settings(values):
     try:
         SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        SETTINGS_PATH.write_text(json.dumps(values, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary_path = SETTINGS_PATH.with_suffix(".json.tmp")
+        temporary_path.write_text(json.dumps(values, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary_path.replace(SETTINGS_PATH)
     except OSError:
         pass
 
@@ -101,6 +103,8 @@ class App(Gtk.Application):
         self.settings = load_settings()
 
     def do_activate(self):
+        # Reload preferences when Plasma activates an already-running application instance.
+        self.settings = load_settings()
         self.window = Gtk.ApplicationWindow(application=self)
         self.window.set_default_size(760, 620)
         self.window.set_title("Compress Images")
@@ -149,6 +153,7 @@ class App(Gtk.Application):
         self.status = Gtk.Label(label="Ready"); self.status.set_xalign(0); self.status.set_wrap(True); self.status.set_margin_top(22); outer.append(self.status)
         self.help_label = Gtk.Label(label="Original files are never changed."); self.help_label.set_xalign(0); self.help_label.add_css_class("dim-label"); self.help_label.set_margin_top(10); outer.append(self.help_label)
         self.window.set_child(outer)
+        self.persist_settings()
 
     def refresh_text(self, *_):
         self.ui_text = TEXT[self.language_dropdown.get_selected_item().get_string()]

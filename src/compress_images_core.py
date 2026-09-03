@@ -203,7 +203,15 @@ def get_dimensions(image_path: Path) -> tuple[int, int]:
     return int(raw_width), int(raw_height)
 
 
-def encode_candidate(source: Path, destination: Path, width: int, height: int, quality: int, output_format: str) -> int:
+def encode_candidate(
+    source: Path,
+    destination: Path,
+    width: int,
+    height: int,
+    quality: int,
+    output_format: str,
+    target_bytes: int | None = None,
+) -> int:
     args = [
         "magick",
         f"{source}[0]",
@@ -225,8 +233,10 @@ def encode_candidate(source: Path, destination: Path, width: int, height: int, q
         "png:compression-level=9",
         "-define",
         "webp:method=6",
-        str(destination),
     ]
+    if output_format == "jpg" and target_bytes is not None:
+        args.extend(["-define", f"jpeg:extent={target_bytes}B"])
+    args.append(str(destination))
     run_command(args, f"Failed to create '{destination.name}'")
     return destination.stat().st_size
 
@@ -249,6 +259,14 @@ def find_best_candidate(
     initial_size = encode_candidate(source, initial_path, width, height, max_quality, output_format)
     if initial_size <= max_bytes:
         return initial_path, initial_size
+
+    if output_format == "jpg":
+        extent_path = temp_dir / "candidate_extent.jpg"
+        extent_size = encode_candidate(
+            source, extent_path, width, height, max_quality, output_format, max_bytes
+        )
+        if extent_size <= max_bytes:
+            return extent_path, extent_size
 
     low = min_quality
     high = max_quality - 1
