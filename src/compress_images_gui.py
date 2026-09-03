@@ -9,7 +9,7 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import GLib, Gtk
+from gi.repository import Gio, GLib, Gtk
 
 from compress_images_core import (
     SUPPORTED_EXTENSIONS,
@@ -95,7 +95,8 @@ TEXT = {
 
 class App(Gtk.Application):
     def __init__(self):
-        super().__init__(application_id="com.github.compress-images")
+        # Allow a fresh process to load the latest preferences on every launch.
+        super().__init__(application_id="com.github.compress-images", flags=Gio.ApplicationFlags.NON_UNIQUE)
         self.source_paths: list[Path] = []
         self.folder_mode = False
         self.labels = {}

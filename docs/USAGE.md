@@ -8,6 +8,8 @@ The folder option can include subfolders. Results are written to a `compressed/`
 
 The application remembers the language, size value, `MB`/`KB` unit, output format, and subfolder setting in `~/.config/compress-images/settings.json`. This is a small user-only JSON file and can be deleted to restore defaults.
 
+Each launcher activation starts an instance that reloads this file, so an older GUI process cannot keep stale language or option values.
+
 Batch jobs use bounded parallel workers. JPG output first checks a high-quality candidate and uses ImageMagick's target-size encoder when appropriate; the exact final size is still verified and the existing resize fallback remains active.
 
 Supported output formats are `JPG`, `WEBP`, `AVIF`, and `PNG`. The encoder searches for the highest suitable quality first and then reduces dimensions while preserving aspect ratio. EXIF orientation is applied and metadata is stripped. Existing output files are never overwritten.
