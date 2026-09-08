@@ -23,6 +23,7 @@ The project provides:
 - JPEG quality search, a JPEG extent fast path, and progressive resizing when quality reduction alone cannot meet the target.
 - Aspect-ratio preservation, EXIF orientation correction and metadata stripping.
 - Originals are never modified.
+- The GUI must accept files explicitly selected by the user even when they have no filename extension; Dolphin can identify such files as JPEG. Folder scanning still uses supported extensions.
 - Collision-safe output names such as `photo.jpg` and `photo_2.jpg`.
 - Skips `compressed/` and hidden cache directories.
 - Optional recursive processing while preserving the relative directory structure.
@@ -97,6 +98,7 @@ AUR account registration was temporarily paused by AUR anti-abuse measures. Do n
 - The installed GUI launched successfully with `timeout`; the timeout exit code `124` meant the GUI stayed running, not that it crashed.
 - Startup log was empty/no GTK startup errors.
 - The settings file was read with `language: Slovenian` and the other saved values.
+- JPEG files without extensions were reproduced from `/home/rok/Prejemi`; after the GUI selection fix, three such files compressed successfully below `512 KiB` without changing the originals.
 - A previously running old GUI process was intentionally not killed because it was processing user images. Never interrupt an active compression job or modify originals.
 - The project has been committed and pushed through the `v0.2.1` release work. Re-check `git status`, `git log`, workflow status and release assets before further changes.
 

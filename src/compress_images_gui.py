@@ -48,7 +48,7 @@ TEXT = {
         "recursive": "Include subfolders", "start": "Start compression", "help": "Original files are never changed.",
         "ready": "Ready", "select": "Choose a folder or one or more images first.", "done": "Done",
         "found": "Found", "converted": "converted", "failed": "failed", "saved": "Saved",
-        "error": "Error", "folder": "Folder", "files": "images", "original": "Original",
+        "error": "Error", "folder": "Folder", "files": "images", "original": "Original", "no_images": "No supported images found.",
     },
     "Slovenian": {
         "title": "Stiskanje slik", "choose_folder": "Izberi mapo", "choose_files": "Izberi slike",
@@ -56,7 +56,7 @@ TEXT = {
         "recursive": "Vključi podmape", "start": "Začni stiskanje", "help": "Originalne datoteke ostanejo nedotaknjene.",
         "ready": "Pripravljeno", "select": "Najprej izberi mapo ali eno oziroma več slik.", "done": "Končano",
         "found": "Najdenih", "converted": "pretvorjenih", "failed": "napak", "saved": "Prihranek",
-        "error": "Napaka", "folder": "Mapa", "files": "slik", "original": "Original",
+        "error": "Napaka", "folder": "Mapa", "files": "slik", "original": "Original", "no_images": "Ni najdenih podprtih slik.",
     },
     "German": {
         "title": "Bilder komprimieren", "choose_folder": "Ordner wahlen", "choose_files": "Bilder wahlen",
@@ -64,7 +64,7 @@ TEXT = {
         "recursive": "Unterordner einbeziehen", "start": "Komprimierung starten", "help": "Originaldateien werden nie verändert.",
         "ready": "Bereit", "select": "Bitte zuerst einen Ordner oder Bilder auswählen.", "done": "Fertig",
         "found": "Gefunden", "converted": "konvertiert", "failed": "Fehler", "saved": "Gespart",
-        "error": "Fehler", "folder": "Ordner", "files": "Bilder", "original": "Original",
+        "error": "Fehler", "folder": "Ordner", "files": "Bilder", "original": "Original", "no_images": "Keine unterstützten Bilder gefunden.",
     },
     "Croatian": {
         "title": "Komprimiranje slika", "choose_folder": "Odaberi mapu", "choose_files": "Odaberi slike",
@@ -72,7 +72,7 @@ TEXT = {
         "recursive": "Uključi podmape", "start": "Pokreni komprimiranje", "help": "Izvorne datoteke se ne mijenjaju.",
         "ready": "Spremno", "select": "Najprije odaberite mapu ili slike.", "done": "Gotovo",
         "found": "Pronađeno", "converted": "pretvoreno", "failed": "neuspješno", "saved": "Ušteđeno",
-        "error": "Greška", "folder": "Mapa", "files": "slika", "original": "Izvorno",
+        "error": "Greška", "folder": "Mapa", "files": "slika", "original": "Izvorno", "no_images": "Nisu pronađene podržane slike.",
     },
     "Serbian": {
         "title": "Kompresija slika", "choose_folder": "Izaberi fasciklu", "choose_files": "Izaberi slike",
@@ -80,7 +80,7 @@ TEXT = {
         "recursive": "Uključi podfascikle", "start": "Pokreni kompresiju", "help": "Originalne datoteke ostaju nepromenjene.",
         "ready": "Spremno", "select": "Prvo izaberi fasciklu ili slike.", "done": "Završeno",
         "found": "Pronađeno", "converted": "konvertovano", "failed": "neuspešno", "saved": "Ušteđeno",
-        "error": "Greška", "folder": "Fascikla", "files": "slika", "original": "Original",
+        "error": "Greška", "folder": "Fascikla", "files": "slika", "original": "Original", "no_images": "Nisu pronađene podržane slike.",
     },
     "French": {
         "title": "Compresser les images", "choose_folder": "Choisir un dossier", "choose_files": "Choisir des images",
@@ -88,7 +88,7 @@ TEXT = {
         "recursive": "Inclure les sous-dossiers", "start": "Lancer la compression", "help": "Les originaux ne sont jamais modifiés.",
         "ready": "Prêt", "select": "Choisissez d'abord un dossier ou des images.", "done": "Terminé",
         "found": "Trouvées", "converted": "converties", "failed": "échecs", "saved": "Économisé",
-        "error": "Erreur", "folder": "Dossier", "files": "images", "original": "Original",
+        "error": "Erreur", "folder": "Dossier", "files": "images", "original": "Original", "no_images": "Aucune image prise en charge trouvée.",
     },
 }
 
@@ -215,8 +215,13 @@ class App(Gtk.Application):
         if self.folder_mode:
             root = self.source_paths[0]; images = gather_images(root, recursive_setting); output_root = root / "compressed"; recursive = recursive_setting
         else:
-            images = [p for p in self.source_paths if p.suffix.lower() in SUPPORTED_EXTENSIONS and p.is_file()]
+            # Files selected explicitly in the chooser may have no extension.
+            # Let the conversion engine validate their actual image contents.
+            images = [p for p in self.source_paths if p.is_file()]
             root = Path(os.path.commonpath([str(p.parent) for p in images])) if images else Path.cwd(); output_root = root / "compressed"; recursive = True
+        if not images:
+            GLib.idle_add(self.finish, self.t("no_images"))
+            return
         converted = failed = 0; original = compressed = 0; lines = [f"{tx['found']} {len(images)}"]
 
         def report(result):
