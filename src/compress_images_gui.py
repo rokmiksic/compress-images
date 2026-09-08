@@ -44,6 +44,7 @@ def save_settings(values):
 TEXT = {
     "English": {
         "title": "Compress Images", "choose_folder": "Choose folder", "choose_files": "Choose images",
+        "subtitle": "Fast, safe batch image conversion",
         "nothing": "No source selected", "limit": "Maximum size per image", "format": "Output format", "unit": "Unit",
         "recursive": "Include subfolders", "start": "Start compression", "help": "Original files are never changed.",
         "ready": "Ready", "select": "Choose a folder or one or more images first.", "done": "Done",
@@ -52,6 +53,7 @@ TEXT = {
     },
     "Slovenian": {
         "title": "Stiskanje slik", "choose_folder": "Izberi mapo", "choose_files": "Izberi slike",
+        "subtitle": "Hitro in varno paketno pretvarjanje slik",
         "nothing": "Vir ni izbran", "limit": "Največja velikost posamezne slike", "format": "Izhodni format", "unit": "Enota",
         "recursive": "Vključi podmape", "start": "Začni stiskanje", "help": "Originalne datoteke ostanejo nedotaknjene.",
         "ready": "Pripravljeno", "select": "Najprej izberi mapo ali eno oziroma več slik.", "done": "Končano",
@@ -60,6 +62,7 @@ TEXT = {
     },
     "German": {
         "title": "Bilder komprimieren", "choose_folder": "Ordner wahlen", "choose_files": "Bilder wahlen",
+        "subtitle": "Schnelle und sichere Stapelkonvertierung von Bildern",
         "nothing": "Keine Quelle ausgewählt", "limit": "Maximale Größe pro Bild", "format": "Ausgabeformat", "unit": "Einheit",
         "recursive": "Unterordner einbeziehen", "start": "Komprimierung starten", "help": "Originaldateien werden nie verändert.",
         "ready": "Bereit", "select": "Bitte zuerst einen Ordner oder Bilder auswählen.", "done": "Fertig",
@@ -68,6 +71,7 @@ TEXT = {
     },
     "Croatian": {
         "title": "Komprimiranje slika", "choose_folder": "Odaberi mapu", "choose_files": "Odaberi slike",
+        "subtitle": "Brza i sigurna grupna pretvorba slika",
         "nothing": "Izvor nije odabran", "limit": "Najveća veličina pojedine slike", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podmape", "start": "Pokreni komprimiranje", "help": "Izvorne datoteke se ne mijenjaju.",
         "ready": "Spremno", "select": "Najprije odaberite mapu ili slike.", "done": "Gotovo",
@@ -76,6 +80,7 @@ TEXT = {
     },
     "Serbian": {
         "title": "Kompresija slika", "choose_folder": "Izaberi fasciklu", "choose_files": "Izaberi slike",
+        "subtitle": "Brza i sigurna grupna konverzija slika",
         "nothing": "Izvor nije izabran", "limit": "Najveća veličina slike", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podfascikle", "start": "Pokreni kompresiju", "help": "Originalne datoteke ostaju nepromenjene.",
         "ready": "Spremno", "select": "Prvo izaberi fasciklu ili slike.", "done": "Završeno",
@@ -84,6 +89,7 @@ TEXT = {
     },
     "French": {
         "title": "Compresser les images", "choose_folder": "Choisir un dossier", "choose_files": "Choisir des images",
+        "subtitle": "Conversion d'images rapide et sûre par lots",
         "nothing": "Aucune source sélectionnée", "limit": "Taille maximale par image", "format": "Format de sortie", "unit": "Unité",
         "recursive": "Inclure les sous-dossiers", "start": "Lancer la compression", "help": "Les originaux ne sont jamais modifiés.",
         "ready": "Prêt", "select": "Choisissez d'abord un dossier ou des images.", "done": "Terminé",
@@ -123,11 +129,11 @@ class App(Gtk.Application):
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         outer.set_margin_top(28); outer.set_margin_bottom(28); outer.set_margin_start(32); outer.set_margin_end(32)
         header = Gtk.Box(spacing=12); header.add_css_class("hero")
-        title = Gtk.Label(label="Compress Images"); title.add_css_class("title-1"); title.set_hexpand(True); title.set_xalign(0)
+        self.title_label = Gtk.Label(label="Compress Images"); self.title_label.add_css_class("title-1"); self.title_label.set_hexpand(True); self.title_label.set_xalign(0)
         self.language_dropdown = Gtk.DropDown.new_from_strings(list(TEXT))
         self.language_dropdown.set_selected(max(0, list(TEXT).index(self.settings["language"]) if self.settings["language"] in TEXT else 0)); self.language_dropdown.connect("notify::selected-item", self.refresh_text)
-        header.append(title); header.append(self.language_dropdown); outer.append(header)
-        subtitle = Gtk.Label(label="Fast, safe batch image conversion"); subtitle.set_xalign(0); subtitle.add_css_class("dim-label"); outer.append(subtitle)
+        header.append(self.title_label); header.append(self.language_dropdown); outer.append(header)
+        self.subtitle_label = Gtk.Label(label="Fast, safe batch image conversion"); self.subtitle_label.set_xalign(0); self.subtitle_label.add_css_class("dim-label"); outer.append(self.subtitle_label)
 
         source_box = Gtk.Box(spacing=10); source_box.set_margin_top(22); source_box.add_css_class("section")
         self.folder_button = Gtk.Button(label="Choose folder"); self.folder_button.connect("clicked", self.choose_folder)
@@ -154,10 +160,12 @@ class App(Gtk.Application):
         self.status = Gtk.Label(label="Ready"); self.status.set_xalign(0); self.status.set_wrap(True); self.status.set_margin_top(22); outer.append(self.status)
         self.help_label = Gtk.Label(label="Original files are never changed."); self.help_label.set_xalign(0); self.help_label.add_css_class("dim-label"); self.help_label.set_margin_top(10); outer.append(self.help_label)
         self.window.set_child(outer)
-        self.persist_settings()
+        # Apply the saved language immediately; otherwise the widgets remain in English until a manual change.
+        self.refresh_text()
 
     def refresh_text(self, *_):
         self.ui_text = TEXT[self.language_dropdown.get_selected_item().get_string()]
+        self.title_label.set_label(self.t("title")); self.subtitle_label.set_label(self.t("subtitle"))
         self.folder_button.set_label(self.t("choose_folder")); self.files_button.set_label(self.t("choose_files"))
         self.limit_label.set_label(self.t("limit")); self.unit_label.set_label(self.t("unit")); self.format_label.set_label(self.t("format")); self.recursive_label.set_label(self.t("recursive"))
         self.start_button.set_label(self.t("start")); self.help_label.set_label(self.t("help"))
