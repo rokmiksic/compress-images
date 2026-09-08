@@ -7,7 +7,7 @@ This file records the current state for the next agent working on this project.
 - Public repository: https://github.com/rokmiksic/compress-images
 - Local project: `/home/rok/Dokumenti/ChatGPT/ta računalnik/compress-images`
 - Current user: Slovenian CachyOS/Arch Linux desktop with KDE Plasma and Fish.
-- Current latest release work: `v0.2.1`.
+- Current latest release work: `v0.2.1`; `master` now also contains post-release fixes through commit `14a045f`.
 - License: MIT. The project is intended to remain fully open source and accept contributions.
 - CLI language is English-only. The GTK GUI remains multilingual.
 
@@ -54,6 +54,7 @@ The GUI fix in `src/compress_images_gui.py` is important:
 - `do_activate()` reloads settings before rebuilding the window.
 - Saves use UTF-8, `ensure_ascii=False`, and atomic temporary-file replacement.
 - The local launcher uses the installed GUI executable, not the source checkout.
+- `build_ui()` calls `refresh_text()` after creating all widgets, so the saved language is applied immediately on startup instead of only after manually changing the language dropdown.
 
 If the user still sees old choices, close the existing GUI window completely and start a fresh instance from Plasma. The current installed executable is `/home/rok/.local/bin/compress-images-gui`.
 
@@ -99,6 +100,7 @@ AUR account registration was temporarily paused by AUR anti-abuse measures. Do n
 - Startup log was empty/no GTK startup errors.
 - The settings file was read with `language: Slovenian` and the other saved values.
 - JPEG files without extensions were reproduced from `/home/rok/Prejemi`; after the GUI selection fix, three such files compressed successfully below `512 KiB` without changing the originals.
+- The saved-language startup fix was tested with `~/.config/compress-images/settings.json` set to `Slovenian`; the GUI started without errors and the fix was pushed to GitHub `master` as `14a045f`.
 - A previously running old GUI process was intentionally not killed because it was processing user images. Never interrupt an active compression job or modify originals.
 - The project has been committed and pushed through the `v0.2.1` release work. Re-check `git status`, `git log`, workflow status and release assets before further changes.
 
@@ -109,5 +111,7 @@ AUR account registration was temporarily paused by AUR anti-abuse measures. Do n
 3. Reproduce GUI persistence by changing language/options, closing the GUI fully, and reopening it from Plasma.
 4. Test originals in a temporary copy only; verify every output is at or below the requested size and that source files have unchanged hashes.
 5. For release changes, update version metadata consistently, regenerate `.SRCINFO`, run package builds, push the tag, and verify both GitHub assets.
+
+The current `v0.2.1` release assets were built before the latest startup-language fix. Create a new version/tag and rebuild both Arch and Debian assets before claiming the packaged release includes `14a045f`.
 
 Do not delete or overwrite the user's original images. Do not reset or discard unrelated working-tree changes.
