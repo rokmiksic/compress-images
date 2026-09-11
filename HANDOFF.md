@@ -27,6 +27,7 @@ The project provides:
 - Collision-safe output names such as `photo.jpg` and `photo_2.jpg`.
 - Skips `compressed/` and hidden cache directories.
 - Optional recursive processing while preserving the relative directory structure.
+- GUI ZIP input: selecting a ZIP extracts it safely to a temporary directory, compresses its images while preserving archive folders, writes `compressed/<archive-name>/`, and creates `compressed/<archive-name>-compressed.zip` without modifying the original archive.
 - Batch processing with bounded parallelism for faster conversion.
 - Summary of converted, failed/skipped files and before/after total sizes.
 
@@ -101,6 +102,7 @@ AUR account registration was temporarily paused by AUR anti-abuse measures. Do n
 - The settings file was read with `language: Slovenian` and the other saved values.
 - JPEG files without extensions were reproduced from `/home/rok/Prejemi`; after the GUI selection fix, three such files compressed successfully below `512 KiB` without changing the originals.
 - The saved-language startup fix was tested with `~/.config/compress-images/settings.json` set to `Slovenian`; the GUI started without errors and the fix was pushed to GitHub `master` as `14a045f`.
+- ZIP input support is implemented in `src/compress_images_core.py` and `src/compress_images_gui.py`; safe extraction rejects traversal and symlink entries.
 - A previously running old GUI process was intentionally not killed because it was processing user images. Never interrupt an active compression job or modify originals.
 - The project has been committed and pushed through the `v0.2.1` release work. Re-check `git status`, `git log`, workflow status and release assets before further changes.
 

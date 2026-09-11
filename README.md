@@ -19,7 +19,9 @@ The latest source and Arch package build are available from [GitHub](https://git
 
 For Debian, Ubuntu, Linux Mint and related distributions, download the `.deb` asset from the GitHub Release and install it with `sudo apt install ./compress-images_VERSION_all.deb`. The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.
 
-The GUI supports selecting a complete folder or individual files, a real per-file size limit, JPG/WEBP/AVIF/PNG output, recursive folders, and collision-safe names. Output is written below `compressed/`.
+The GUI supports selecting a complete folder, individual files, or ZIP archives, a real per-file size limit, JPG/WEBP/AVIF/PNG output, recursive folders, and collision-safe names. Output is written below `compressed/`.
+
+When a ZIP archive is selected, it is extracted only into a temporary directory. Images inside it are converted while preserving their internal folder structure. The original archive is never changed. Results are written below `compressed/<archive-name>/` and are also packed into `compressed/<archive-name>-compressed.zip`. ZIP paths are validated before extraction; absolute paths, parent-directory traversal and symbolic links are rejected.
 
 The size field accepts a decimal number and the adjacent unit selector accepts `MB` or `KB` (for example `0.5 MB`, `500 KB`, or `750 KB`). The limit is checked against the actual encoded file size.
 

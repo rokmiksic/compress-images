@@ -4,6 +4,7 @@
 import json
 import os
 import threading
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import gi
@@ -12,10 +13,12 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, Gtk
 
 from compress_images_core import (
-    SUPPORTED_EXTENSIONS,
     compress_batch,
+    create_zip_archive,
+    extract_zip_safely,
     format_bytes,
     gather_images,
+    is_zip_path,
     parse_size_mb,
 )
 
@@ -41,9 +44,20 @@ def save_settings(values):
         pass
 
 
+def next_available_path(path: Path) -> Path:
+    """Avoid overwriting an existing ZIP or archive output directory."""
+    if not path.exists():
+        return path
+    for counter in range(2, 10000):
+        candidate = path.with_name(f"{path.name}_{counter}")
+        if not candidate.exists():
+            return candidate
+    raise RuntimeError(f"Could not find a free output name for '{path.name}'.")
+
+
 TEXT = {
     "English": {
-        "title": "Compress Images", "choose_folder": "Choose folder", "choose_files": "Choose images",
+        "title": "Compress Images", "choose_folder": "Choose folder", "choose_files": "Choose images or ZIP",
         "subtitle": "Fast, safe batch image conversion",
         "nothing": "No source selected", "limit": "Maximum size per image", "format": "Output format", "unit": "Unit",
         "recursive": "Include subfolders", "start": "Start compression", "help": "Original files are never changed.",
@@ -52,7 +66,7 @@ TEXT = {
         "error": "Error", "folder": "Folder", "files": "images", "original": "Original", "no_images": "No supported images found.",
     },
     "Slovenian": {
-        "title": "Stiskanje slik", "choose_folder": "Izberi mapo", "choose_files": "Izberi slike",
+        "title": "Stiskanje slik", "choose_folder": "Izberi mapo", "choose_files": "Izberi slike ali ZIP",
         "subtitle": "Hitro in varno paketno pretvarjanje slik",
         "nothing": "Vir ni izbran", "limit": "Največja velikost posamezne slike", "format": "Izhodni format", "unit": "Enota",
         "recursive": "Vključi podmape", "start": "Začni stiskanje", "help": "Originalne datoteke ostanejo nedotaknjene.",
@@ -61,7 +75,7 @@ TEXT = {
         "error": "Napaka", "folder": "Mapa", "files": "slik", "original": "Original", "no_images": "Ni najdenih podprtih slik.",
     },
     "German": {
-        "title": "Bilder komprimieren", "choose_folder": "Ordner wahlen", "choose_files": "Bilder wahlen",
+        "title": "Bilder komprimieren", "choose_folder": "Ordner wählen", "choose_files": "Bilder oder ZIP wählen",
         "subtitle": "Schnelle und sichere Stapelkonvertierung von Bildern",
         "nothing": "Keine Quelle ausgewählt", "limit": "Maximale Größe pro Bild", "format": "Ausgabeformat", "unit": "Einheit",
         "recursive": "Unterordner einbeziehen", "start": "Komprimierung starten", "help": "Originaldateien werden nie verändert.",
@@ -70,7 +84,7 @@ TEXT = {
         "error": "Fehler", "folder": "Ordner", "files": "Bilder", "original": "Original", "no_images": "Keine unterstützten Bilder gefunden.",
     },
     "Croatian": {
-        "title": "Komprimiranje slika", "choose_folder": "Odaberi mapu", "choose_files": "Odaberi slike",
+        "title": "Komprimiranje slika", "choose_folder": "Odaberi mapu", "choose_files": "Odaberi slike ili ZIP",
         "subtitle": "Brza i sigurna grupna pretvorba slika",
         "nothing": "Izvor nije odabran", "limit": "Najveća veličina pojedine slike", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podmape", "start": "Pokreni komprimiranje", "help": "Izvorne datoteke se ne mijenjaju.",
@@ -79,7 +93,7 @@ TEXT = {
         "error": "Greška", "folder": "Mapa", "files": "slika", "original": "Izvorno", "no_images": "Nisu pronađene podržane slike.",
     },
     "Serbian": {
-        "title": "Kompresija slika", "choose_folder": "Izaberi fasciklu", "choose_files": "Izaberi slike",
+        "title": "Kompresija slika", "choose_folder": "Izaberi fasciklu", "choose_files": "Izaberi slike ili ZIP",
         "subtitle": "Brza i sigurna grupna konverzija slika",
         "nothing": "Izvor nije izabran", "limit": "Najveća veličina slike", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podfascikle", "start": "Pokreni kompresiju", "help": "Originalne datoteke ostaju nepromenjene.",
@@ -88,7 +102,7 @@ TEXT = {
         "error": "Greška", "folder": "Fascikla", "files": "slika", "original": "Original", "no_images": "Nisu pronađene podržane slike.",
     },
     "French": {
-        "title": "Compresser les images", "choose_folder": "Choisir un dossier", "choose_files": "Choisir des images",
+        "title": "Compresser les images", "choose_folder": "Choisir un dossier", "choose_files": "Choisir des images ou ZIP",
         "subtitle": "Conversion d'images rapide et sûre par lots",
         "nothing": "Aucune source sélectionnée", "limit": "Taille maximale par image", "format": "Format de sortie", "unit": "Unité",
         "recursive": "Inclure les sous-dossiers", "start": "Lancer la compression", "help": "Les originaux ne sont jamais modifiés.",
@@ -225,29 +239,68 @@ class App(Gtk.Application):
         else:
             # Files selected explicitly in the chooser may have no extension.
             # Let the conversion engine validate their actual image contents.
-            images = [p for p in self.source_paths if p.is_file()]
-            root = Path(os.path.commonpath([str(p.parent) for p in images])) if images else Path.cwd(); output_root = root / "compressed"; recursive = True
-        if not images:
+            zip_sources = [p for p in self.source_paths if is_zip_path(p) and p.is_file()]
+            images = [p for p in self.source_paths if not is_zip_path(p) and p.is_file()]
+            root = Path(os.path.commonpath([str(p.parent) for p in self.source_paths])) if self.source_paths else Path.cwd()
+            output_root = root / "compressed"; recursive = True
+        if not self.folder_mode and not images and not zip_sources:
             GLib.idle_add(self.finish, self.t("no_images"))
             return
-        converted = failed = 0; original = compressed = 0; lines = [f"{tx['found']} {len(images)}"]
+        converted = failed = 0; original = compressed = 0; lines = []
 
-        def report(result):
+        def report(result, display_root=None):
             index, source, destination, size, error = result
+            display_name = source.name
+            if display_root is not None:
+                display_name = str(source.relative_to(display_root))
             if error is not None:
-                line = f"[{index}/{len(images)}] {source.name} -> {tx['error']}: {error}"
+                line = f"[{index}] {display_name} -> {tx['error']}: {error}"
             else:
-                line = f"[{index}/{len(images)}] {source.name} -> {destination.name} | {format_bytes(source.stat().st_size)} -> {format_bytes(size)}"
+                line = f"[{index}] {display_name} -> {destination.name} | {format_bytes(source.stat().st_size)} -> {format_bytes(size)}"
             lines.append(line)
             GLib.idle_add(self.status.set_label, line)
 
-        results = compress_batch(images, root, output_root, recursive, max_bytes, fmt, report)
-        for _, source, _, size, error in results:
-            original += source.stat().st_size
-            if error is not None:
+        def collect(results):
+            nonlocal converted, failed, original, compressed
+            for _, source, _, size, error in results:
+                original += source.stat().st_size
+                if error is not None:
+                    failed += 1
+                else:
+                    converted += 1; compressed += size
+
+        if images:
+            lines.append(f"{tx['found']} {len(images)}")
+            collect(compress_batch(images, root, output_root, recursive, max_bytes, fmt, report))
+
+        for archive in ([] if self.folder_mode else zip_sources):
+            try:
+                with TemporaryDirectory(prefix="compress-images-zip-") as temporary:
+                    extracted_root = Path(temporary) / "input"
+                    extract_zip_safely(archive, extracted_root)
+                    archive_images = gather_images(extracted_root, True)
+                    lines.append(f"{archive.name}: {tx['found']} {len(archive_images)}")
+                    if not archive_images:
+                        continue
+                    archive_output = next_available_path(output_root / archive.stem)
+                    archive_results = compress_batch(
+                        archive_images,
+                        extracted_root,
+                        archive_output,
+                        True,
+                        max_bytes,
+                        fmt,
+                        lambda result: report(result, extracted_root),
+                    )
+                    collect(archive_results)
+                    if any(error is None for _, _, _, _, error in archive_results):
+                        archive_zip = next_available_path(output_root / f"{archive.stem}-compressed.zip")
+                        create_zip_archive(archive_output, archive_zip)
+                        lines.append(f"{archive.name} -> {archive_zip.name}")
+            except Exception as exc:
                 failed += 1
-            else:
-                converted += 1; compressed += size
+                lines.append(f"{archive.name} -> {tx['error']}: {exc}")
+
         summary = "\n".join(lines[-min(len(lines), 8):] + [f"\n{tx['done']}: {converted} {tx['converted']}, {failed} {tx['failed']}", f"{tx['original']}: {format_bytes(original)} | {tx['saved']}: {format_bytes(original - compressed)}"])
         GLib.idle_add(self.finish, summary)
 

@@ -4,11 +4,13 @@ import argparse
 import math
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 SUPPORTED_EXTENSIONS = {
@@ -26,6 +28,7 @@ SUPPORTED_EXTENSIONS = {
     ".jfif",
 }
 HEIF_EXTENSIONS = {".heic", ".heif", ".avif"}
+ZIP_EXTENSIONS = {".zip"}
 SKIP_DIR_NAMES = {"compressed", "__pycache__"}
 MIN_QUALITY = 45
 START_QUALITY = 90
@@ -125,6 +128,42 @@ def is_supported_image(path: Path) -> bool:
     if any(part.startswith(".") for part in path.parts[:-1]):
         return False
     return path.suffix.lower() in SUPPORTED_EXTENSIONS
+
+
+def is_zip_path(path: Path) -> bool:
+    return path.suffix.lower() in ZIP_EXTENSIONS
+
+
+def extract_zip_safely(archive: Path, destination: Path) -> None:
+    """Extract a ZIP without allowing paths to escape the temporary directory."""
+    destination = destination.resolve()
+    destination.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive) as source_zip:
+        for member in source_zip.infolist():
+            member_path = PurePosixPath(member.filename)
+            if not member.filename or "\x00" in member.filename or member_path.is_absolute() or ".." in member_path.parts:
+                raise RuntimeError(f"Unsafe path in ZIP archive: {member.filename!r}")
+            target = (destination / Path(*member_path.parts)).resolve()
+            if target != destination and destination not in target.parents:
+                raise RuntimeError(f"Unsafe path in ZIP archive: {member.filename!r}")
+            mode = member.external_attr >> 16
+            if stat.S_ISLNK(mode):
+                raise RuntimeError(f"Symbolic links are not supported in ZIP archives: {member.filename!r}")
+            if member.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with source_zip.open(member) as source_file, target.open("wb") as target_file:
+                shutil.copyfileobj(source_file, target_file)
+
+
+def create_zip_archive(source_root: Path, destination: Path) -> None:
+    """Create a compressed ZIP containing the generated files below source_root."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as output_zip:
+        for path in sorted(source_root.rglob("*")):
+            if path.is_file():
+                output_zip.write(path, path.relative_to(source_root).as_posix())
 
 
 def make_output_path(
