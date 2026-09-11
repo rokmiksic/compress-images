@@ -2,9 +2,11 @@
 
 ## GUI
 
-Run `compress-images-gui` from the application menu or terminal. Choose either a complete folder or individual image files. Select the maximum size, choose `MB` or `KB`, select an output format, and press **Start compression**.
+Run `compress-images-gui` from the application menu or terminal. Choose either a complete folder, individual image files, or a ZIP archive. Select the maximum size, choose `MB` or `KB`, select an output format, and press **Start compression**.
 
 The folder option can include subfolders. Results are written to a `compressed/` directory below the selected folder. When individual files are selected, the common parent directory is used and its relative folder structure is preserved.
+
+When a ZIP archive is selected, the archive is read-only. Its images are extracted to a temporary directory, converted with the same size limit, and written below `compressed/<archive-name>/` with the internal folder structure preserved. A ready-to-share `compressed/<archive-name>-compressed.zip` is created as well. Unsafe absolute paths, parent-directory traversal and symbolic links inside the input archive are rejected.
 
 The application remembers the language, size value, `MB`/`KB` unit, output format, and subfolder setting in `~/.config/compress-images/settings.json`. This is a small user-only JSON file and can be deleted to restore defaults.
 
