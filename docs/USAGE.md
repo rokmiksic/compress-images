@@ -2,7 +2,9 @@
 
 ## GUI
 
-Run `compress-images-gui` from the application menu or terminal. Choose either a complete folder, individual image files, or a ZIP archive. Select the maximum size, choose `MB` or `KB`, select an output format, and press **Start compression**.
+Run `compress-images-gui` from the application menu or terminal. Choose or drag in a complete folder, individual image files, or a ZIP archive. Select the maximum size, choose `MB` or `KB`, select an output format, and press **Start compression**.
+
+You can drag items directly from Dolphin onto the source area. The drop target accepts images, folders, and ZIP files. A dropped folder is processed like a folder selected with **Choose folder**; dropped files and ZIP archives are processed like **Choose images or ZIP**.
 
 The folder option can include subfolders. Results are written to a `compressed/` directory below the selected folder. When individual files are selected, the common parent directory is used and its relative folder structure is preserved.
 

@@ -10,7 +10,8 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gio, GLib, Gtk
+gi.require_version("Gdk", "4.0")
+from gi.repository import Gdk, Gio, GLib, Gtk
 
 from compress_images_core import (
     compress_batch,
@@ -59,6 +60,7 @@ TEXT = {
     "English": {
         "title": "Compress Images", "choose_folder": "Choose folder", "choose_files": "Choose images or ZIP",
         "subtitle": "Fast, safe batch image conversion",
+        "drop_hint": "or drag images, folders or ZIP files here",
         "nothing": "No source selected", "limit": "Maximum size per image", "format": "Output format", "unit": "Unit",
         "recursive": "Include subfolders", "start": "Start compression", "help": "Original files are never changed.",
         "ready": "Ready", "select": "Choose a folder or one or more images first.", "done": "Done",
@@ -68,6 +70,7 @@ TEXT = {
     "Slovenian": {
         "title": "Stiskanje slik", "choose_folder": "Izberi mapo", "choose_files": "Izberi slike ali ZIP",
         "subtitle": "Hitro in varno paketno pretvarjanje slik",
+        "drop_hint": "ali sem povleci slike, mape ali ZIP datoteke",
         "nothing": "Vir ni izbran", "limit": "Največja velikost posamezne slike", "format": "Izhodni format", "unit": "Enota",
         "recursive": "Vključi podmape", "start": "Začni stiskanje", "help": "Originalne datoteke ostanejo nedotaknjene.",
         "ready": "Pripravljeno", "select": "Najprej izberi mapo ali eno oziroma več slik.", "done": "Končano",
@@ -77,6 +80,7 @@ TEXT = {
     "German": {
         "title": "Bilder komprimieren", "choose_folder": "Ordner wählen", "choose_files": "Bilder oder ZIP wählen",
         "subtitle": "Schnelle und sichere Stapelkonvertierung von Bildern",
+        "drop_hint": "oder Bilder, Ordner oder ZIP-Dateien hierher ziehen",
         "nothing": "Keine Quelle ausgewählt", "limit": "Maximale Größe pro Bild", "format": "Ausgabeformat", "unit": "Einheit",
         "recursive": "Unterordner einbeziehen", "start": "Komprimierung starten", "help": "Originaldateien werden nie verändert.",
         "ready": "Bereit", "select": "Bitte zuerst einen Ordner oder Bilder auswählen.", "done": "Fertig",
@@ -86,6 +90,7 @@ TEXT = {
     "Croatian": {
         "title": "Komprimiranje slika", "choose_folder": "Odaberi mapu", "choose_files": "Odaberi slike ili ZIP",
         "subtitle": "Brza i sigurna grupna pretvorba slika",
+        "drop_hint": "ili ovdje povuci slike, mape ili ZIP datoteke",
         "nothing": "Izvor nije odabran", "limit": "Najveća veličina pojedine slike", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podmape", "start": "Pokreni komprimiranje", "help": "Izvorne datoteke se ne mijenjaju.",
         "ready": "Spremno", "select": "Najprije odaberite mapu ili slike.", "done": "Gotovo",
@@ -95,6 +100,7 @@ TEXT = {
     "Serbian": {
         "title": "Kompresija slika", "choose_folder": "Izaberi fasciklu", "choose_files": "Izaberi slike ili ZIP",
         "subtitle": "Brza i sigurna grupna konverzija slika",
+        "drop_hint": "ili ovde prevuci slike, fascikle ili ZIP datoteke",
         "nothing": "Izvor nije izabran", "limit": "Najveća veličina slike", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podfascikle", "start": "Pokreni kompresiju", "help": "Originalne datoteke ostaju nepromenjene.",
         "ready": "Spremno", "select": "Prvo izaberi fasciklu ili slike.", "done": "Završeno",
@@ -104,6 +110,7 @@ TEXT = {
     "French": {
         "title": "Compresser les images", "choose_folder": "Choisir un dossier", "choose_files": "Choisir des images ou ZIP",
         "subtitle": "Conversion d'images rapide et sûre par lots",
+        "drop_hint": "ou faites glisser des images, dossiers ou ZIP ici",
         "nothing": "Aucune source sélectionnée", "limit": "Taille maximale par image", "format": "Format de sortie", "unit": "Unité",
         "recursive": "Inclure les sous-dossiers", "start": "Lancer la compression", "help": "Les originaux ne sont jamais modifiés.",
         "ready": "Prêt", "select": "Choisissez d'abord un dossier ou des images.", "done": "Terminé",
@@ -131,7 +138,7 @@ class App(Gtk.Application):
         self.window.set_title("Compress Images")
         self.window.connect("close-request", self.on_close)
         css = Gtk.CssProvider()
-        css.load_from_data(b".hero { padding: 22px; border-radius: 16px; background: alpha(@accent_bg_color, 0.12); } .section { padding: 18px; border-radius: 12px; background: alpha(@window_fg_color, 0.04); } .mono { font-family: monospace; }")
+        css.load_from_data(b".hero { padding: 22px; border-radius: 16px; background: alpha(@accent_bg_color, 0.12); } .section { padding: 18px; border-radius: 12px; background: alpha(@window_fg_color, 0.04); } .drop-active { background: alpha(@accent_bg_color, 0.24); } .mono { font-family: monospace; }")
         Gtk.StyleContext.add_provider_for_display(self.window.get_display(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.build_ui()
         self.window.present()
@@ -150,10 +157,17 @@ class App(Gtk.Application):
         self.subtitle_label = Gtk.Label(label="Fast, safe batch image conversion"); self.subtitle_label.set_xalign(0); self.subtitle_label.add_css_class("dim-label"); outer.append(self.subtitle_label)
 
         source_box = Gtk.Box(spacing=10); source_box.set_margin_top(22); source_box.add_css_class("section")
+        self.source_box = source_box
         self.folder_button = Gtk.Button(label="Choose folder"); self.folder_button.connect("clicked", self.choose_folder)
         self.files_button = Gtk.Button(label="Choose images"); self.files_button.connect("clicked", self.choose_files)
         source_box.append(self.folder_button); source_box.append(self.files_button); outer.append(source_box)
+        self.drop_hint_label = Gtk.Label(label="or drag images, folders or ZIP files here"); self.drop_hint_label.set_xalign(0); self.drop_hint_label.add_css_class("dim-label"); outer.append(self.drop_hint_label)
         self.source_label = Gtk.Label(label="No source selected"); self.source_label.set_xalign(0); self.source_label.add_css_class("dim-label"); outer.append(self.source_label)
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target.connect("enter", self.drag_enter)
+        drop_target.connect("leave", self.drag_leave)
+        drop_target.connect("drop", self.files_dropped)
+        source_box.add_controller(drop_target)
 
         grid = Gtk.Grid(column_spacing=18, row_spacing=14); grid.set_margin_top(18); grid.set_margin_bottom(16); grid.add_css_class("section")
         self.limit_label = Gtk.Label(label="Maximum size per image (MB)"); self.limit_label.set_xalign(0)
@@ -181,6 +195,7 @@ class App(Gtk.Application):
         self.ui_text = TEXT[self.language_dropdown.get_selected_item().get_string()]
         self.title_label.set_label(self.t("title")); self.subtitle_label.set_label(self.t("subtitle"))
         self.folder_button.set_label(self.t("choose_folder")); self.files_button.set_label(self.t("choose_files"))
+        self.drop_hint_label.set_label(self.t("drop_hint"))
         self.limit_label.set_label(self.t("limit")); self.unit_label.set_label(self.t("unit")); self.format_label.set_label(self.t("format")); self.recursive_label.set_label(self.t("recursive"))
         self.start_button.set_label(self.t("start")); self.help_label.set_label(self.t("help"))
         if not self.source_paths: self.source_label.set_label(self.t("nothing"))
@@ -205,11 +220,25 @@ class App(Gtk.Application):
         dialog = Gtk.FileDialog(title=self.t("choose_folder"))
         dialog.select_folder(self.window, None, self.folder_selected)
 
+    def set_sources(self, paths):
+        paths = [path for path in paths if path.exists()]
+        if len(paths) == 1 and paths[0].is_dir():
+            self.source_paths = paths; self.folder_mode = True
+            self.source_label.set_label(f"{self.t('folder')}: {paths[0]}")
+            return bool(paths)
+        files = [path for path in paths if path.is_file()]
+        if not files:
+            self.source_paths = []; self.folder_mode = False
+            self.source_label.set_label(self.t("nothing"))
+            return False
+        self.source_paths = files; self.folder_mode = False
+        self.source_label.set_label(f"{len(files)} {self.t('files')}")
+        return True
+
     def folder_selected(self, dialog, result):
         try: selected = dialog.select_folder_finish(result)
         except GLib.Error: return
-        self.source_paths = [Path(selected.get_path())]; self.folder_mode = True
-        self.source_label.set_label(f"{self.t('folder')}: {self.source_paths[0]}")
+        self.set_sources([Path(selected.get_path())])
 
     def choose_files(self, *_):
         dialog = Gtk.FileDialog(title=self.t("choose_files"))
@@ -218,8 +247,23 @@ class App(Gtk.Application):
     def files_selected(self, dialog, result):
         try: selected = dialog.open_multiple_finish(result)
         except GLib.Error: return
-        self.source_paths = [Path(selected.get_item(i).get_path()) for i in range(selected.get_n_items())]
-        self.folder_mode = False; self.source_label.set_label(f"{len(self.source_paths)} {self.t('files')}")
+        self.set_sources([Path(selected.get_item(i).get_path()) for i in range(selected.get_n_items())])
+
+    def drag_enter(self, *_):
+        self.source_box.add_css_class("drop-active")
+        return Gdk.DragAction.COPY
+
+    def drag_leave(self, *_):
+        self.source_box.remove_css_class("drop-active")
+
+    def files_dropped(self, _target, value, _x, _y):
+        self.source_box.remove_css_class("drop-active")
+        paths = []
+        for file in value.get_files():
+            path = file.get_path()
+            if path:
+                paths.append(Path(path))
+        return self.set_sources(paths)
 
     def start(self, *_):
         if not self.source_paths: self.status.set_label(self.t("select")); return
