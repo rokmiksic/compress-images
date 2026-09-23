@@ -148,6 +148,7 @@ class App(Gtk.Application):
 
     def build_ui(self):
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        self.drop_area = outer
         outer.set_margin_top(28); outer.set_margin_bottom(28); outer.set_margin_start(32); outer.set_margin_end(32)
         header = Gtk.Box(spacing=12); header.add_css_class("hero")
         self.title_label = Gtk.Label(label="Compress Images"); self.title_label.add_css_class("title-1"); self.title_label.set_hexpand(True); self.title_label.set_xalign(0)
@@ -167,7 +168,9 @@ class App(Gtk.Application):
         drop_target.connect("enter", self.drag_enter)
         drop_target.connect("leave", self.drag_leave)
         drop_target.connect("drop", self.files_dropped)
-        source_box.add_controller(drop_target)
+        # Capture drops across the complete window content, not only the source buttons.
+        drop_target.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        outer.add_controller(drop_target)
 
         grid = Gtk.Grid(column_spacing=18, row_spacing=14); grid.set_margin_top(18); grid.set_margin_bottom(16); grid.add_css_class("section")
         self.limit_label = Gtk.Label(label="Maximum size per image (MB)"); self.limit_label.set_xalign(0)
@@ -250,14 +253,14 @@ class App(Gtk.Application):
         self.set_sources([Path(selected.get_item(i).get_path()) for i in range(selected.get_n_items())])
 
     def drag_enter(self, *_):
-        self.source_box.add_css_class("drop-active")
+        self.drop_area.add_css_class("drop-active")
         return Gdk.DragAction.COPY
 
     def drag_leave(self, *_):
-        self.source_box.remove_css_class("drop-active")
+        self.drop_area.remove_css_class("drop-active")
 
     def files_dropped(self, _target, value, _x, _y):
-        self.source_box.remove_css_class("drop-active")
+        self.drop_area.remove_css_class("drop-active")
         paths = []
         for file in value.get_files():
             path = file.get_path()
