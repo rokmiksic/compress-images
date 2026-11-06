@@ -3,6 +3,7 @@
 
 import json
 import os
+import sys
 import threading
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -24,7 +25,13 @@ from compress_images_core import (
     parse_size_mb,
 )
 
-SETTINGS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "compress-images" / "settings.json"
+if os.name == "nt":
+    CONFIG_ROOT = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+elif sys.platform == "darwin":
+    CONFIG_ROOT = Path.home() / "Library" / "Application Support"
+else:
+    CONFIG_ROOT = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+SETTINGS_PATH = CONFIG_ROOT / "compress-images" / "settings.json"
 DEFAULT_SETTINGS = {"language": "English", "unit": "MB", "format": "JPG", "recursive": True, "limit": "1", "resolution": ""}
 
 

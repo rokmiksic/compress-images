@@ -18,6 +18,10 @@ Batch jobs use bounded parallel workers. JPG output first checks a high-quality 
 
 Supported output formats are `JPG`, `WEBP`, `AVIF`, and `PNG`. The encoder searches for the highest suitable quality first and then reduces dimensions while preserving aspect ratio. A blank maximum-resolution field enables automatic resolution reduction when the target would otherwise require excessive quality loss. EXIF orientation is applied, embedded sRGB ICC profiles are preserved, and disposable metadata is stripped when no color profile needs to be retained. Existing output files are never overwritten.
 
+## Windows portable bundle
+
+Download `compress-images-windows-x64.zip` from a GitHub Release and extract it. Start `CompressImagesGUI.cmd` for the GUI or run `CompressImagesCLI.cmd 1 --max-dimension 2400` from a terminal. The bundle contains its own Python, GTK4/PyGObject, ImageMagick, FFmpeg and libheif runtime. Windows settings are stored in `%APPDATA%\\compress-images`.
+
 ## CLI
 
 ```sh

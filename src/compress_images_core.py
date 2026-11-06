@@ -106,7 +106,8 @@ def prompt_for_size_mb() -> float:
 
 
 def ensure_dependencies() -> None:
-    required = ["python3", "magick", "identify"]
+    # Python is already running; only the external image tools need checking.
+    required = ["magick", "identify"]
     missing = [name for name in required if shutil.which(name) is None]
     if missing:
         names = ", ".join(missing)
