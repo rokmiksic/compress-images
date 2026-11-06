@@ -80,7 +80,11 @@ def main() -> None:
         shutil.rmtree(BUILD)
     (RESOURCES / "app").mkdir(parents=True)
     (CONTENTS / "MacOS").mkdir(parents=True)
-    subprocess.run(["conda-pack", "-n", "compress-images", "-o", str(RUNTIME_ARCHIVE)], check=True)
+    # Preserve shared-library symlinks when creating the ZIP runtime bundle.
+    subprocess.run(
+        ["conda-pack", "-n", "compress-images", "-o", str(RUNTIME_ARCHIVE), "--zip-symlinks"],
+        check=True,
+    )
     with zipfile.ZipFile(RUNTIME_ARCHIVE) as archive:
         archive.extractall(RESOURCES / "runtime")
     unpack = RESOURCES / "runtime" / "bin" / "conda-unpack"
