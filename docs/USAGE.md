@@ -22,6 +22,10 @@ Supported output formats are `JPG`, `WEBP`, `AVIF`, and `PNG`. The encoder searc
 
 Download `compress-images-windows-x64-setup.exe` from a GitHub Release and follow the installer. It creates Start Menu and optional Desktop shortcuts and includes an uninstaller. A portable `compress-images-windows-x64.zip` is also available; extract it and start `CompressImagesGUI.cmd`, or run `CompressImagesCLI.cmd 1 --max-dimension 2400` from a terminal. Both variants contain their own Python, GTK4/PyGObject, ImageMagick, FFmpeg and libheif runtime. Windows settings are stored in `%APPDATA%\\compress-images`.
 
+## macOS
+
+Download `compress-images-macos-arm64.dmg` for Apple Silicon or `compress-images-macos-x64.dmg` for Intel Macs. Open the DMG and drag **Compress Images.app** to **Applications**. The app contains its own runtime. For terminal use, open `CompressImagesCLI.command` in Terminal from the ZIP bundle. Settings are stored in `~/Library/Application Support/compress-images`. The builds are not notarized yet, so macOS may require confirmation in **System Settings > Privacy & Security** on first launch.
+
 ## CLI
 
 ```sh

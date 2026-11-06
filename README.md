@@ -44,9 +44,14 @@ The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.
 
 Download `compress-images-windows-x64-setup.exe` from the release. It installs the application, Start Menu shortcut, optional Desktop shortcut and uninstaller. The `compress-images-windows-x64.zip` portable bundle is also available; extract it and double-click `CompressImagesGUI.cmd`. Neither option requires a separate Python, GTK4, ImageMagick, FFmpeg or libheif installation.
 
-### macOS
+### macOS 12+
 
-No signed macOS installer is published yet. macOS packaging remains planned; the current release assets support Arch-based Linux, Debian-based Linux and Windows x64.
+Download the matching `.dmg` from the release:
+
+- Apple Silicon: `compress-images-macos-arm64.dmg`
+- Intel: `compress-images-macos-x64.dmg`
+
+Open the DMG and drag **Compress Images.app** to **Applications**. The app includes its own Python, GTK4/PyGObject, ImageMagick, FFmpeg and libheif runtime. A ZIP bundle and `CompressImagesCLI.command` are also available for portable/terminal use. macOS may show a first-run security prompt because the open-source build is not notarized yet.
 
 The GUI supports selecting or dragging in a complete folder, individual files, or ZIP archives anywhere across the window, a real per-file size limit, JPG/WEBP/AVIF/PNG output, recursive folders, and collision-safe names. Output is written below `compressed/`.
 

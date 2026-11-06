@@ -1,0 +1,11 @@
+name: compress-images
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pygobject
+  - gtk4
+  - imagemagick
+  - ffmpeg
+  - libheif
+  - conda-pack
