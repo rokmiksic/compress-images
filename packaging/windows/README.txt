@@ -1,5 +1,8 @@
 Compress Images for Windows
 
+For the normal installed version, use the Windows installer from the GitHub Release.
+This portable folder is useful when you do not want to install the application.
+
 1. Extract this folder to a location where you have write permission.
 2. Double-click CompressImagesGUI.cmd to start the GUI.
 3. For the command line, open a terminal in this folder and run:

@@ -20,7 +20,7 @@ Supported output formats are `JPG`, `WEBP`, `AVIF`, and `PNG`. The encoder searc
 
 ## Windows portable bundle
 
-Download `compress-images-windows-x64.zip` from a GitHub Release and extract it. Start `CompressImagesGUI.cmd` for the GUI or run `CompressImagesCLI.cmd 1 --max-dimension 2400` from a terminal. The bundle contains its own Python, GTK4/PyGObject, ImageMagick, FFmpeg and libheif runtime. Windows settings are stored in `%APPDATA%\\compress-images`.
+Download `compress-images-windows-x64-setup.exe` from a GitHub Release and follow the installer. It creates Start Menu and optional Desktop shortcuts and includes an uninstaller. A portable `compress-images-windows-x64.zip` is also available; extract it and start `CompressImagesGUI.cmd`, or run `CompressImagesCLI.cmd 1 --max-dimension 2400` from a terminal. Both variants contain their own Python, GTK4/PyGObject, ImageMagick, FFmpeg and libheif runtime. Windows settings are stored in `%APPDATA%\\compress-images`.
 
 ## CLI
 

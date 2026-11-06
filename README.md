@@ -20,7 +20,7 @@ The latest source and Arch package build are available from [GitHub](https://git
 
 For Debian, Ubuntu, Linux Mint and related distributions, download the `.deb` asset from the GitHub Release and install it with `sudo apt install ./compress-images_VERSION_all.deb`. The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.
 
-Windows users can download the `compress-images-windows-x64.zip` portable bundle from a GitHub Release. Extract it and double-click `CompressImagesGUI.cmd`; no separate Python, GTK4, ImageMagick, FFmpeg or libheif installation is required. `CompressImagesCLI.cmd` is available for terminal use.
+Windows users can download the `compress-images-windows-x64-setup.exe` installer from a GitHub Release. It installs the application, Start Menu shortcut, optional Desktop shortcut and uninstaller. The `compress-images-windows-x64.zip` portable bundle is also available; extract it and double-click `CompressImagesGUI.cmd`. Neither option requires a separate Python, GTK4, ImageMagick, FFmpeg or libheif installation.
 
 The GUI supports selecting or dragging in a complete folder, individual files, or ZIP archives anywhere across the window, a real per-file size limit, JPG/WEBP/AVIF/PNG output, recursive folders, and collision-safe names. Output is written below `compressed/`.
 

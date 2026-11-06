@@ -26,8 +26,9 @@ def main() -> None:
     shutil.copy2(ROOT / "src" / "compress_images_core.py", APP / "app" / "compress_images_core.py")
     shutil.copy2(ROOT / "src" / "compress_images_gui.py", APP / "app" / "compress_images_gui.py")
     windows_files = Path(__file__).parent
-    for name in ("CompressImagesGUI.cmd", "CompressImagesCLI.cmd", "README.txt"):
+    for name in ("CompressImagesGUI.cmd", "CompressImagesCLI.cmd", "README.txt", "compress-images.ico"):
         shutil.copy2(windows_files / name, APP / name)
+    shutil.copy2(ROOT / "LICENSE", APP / "LICENSE.txt")
     archive_path = shutil.make_archive(
         str(BUILD / "compress-images-windows-x64"),
         "zip",
