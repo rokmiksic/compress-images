@@ -16,11 +16,37 @@ compress-images-gui           # GTK4 application
 
 The command-line interface uses English prompts and messages. The GUI language can be changed independently.
 
-The latest source and Arch package build are available from [GitHub](https://github.com/rokmiksic/compress-images). Until AUR registration reopens, install the package from the repository with `makepkg -si`, or download the `.pkg.tar.zst` asset from the GitHub Release.
+## Installation
 
-For Debian, Ubuntu, Linux Mint and related distributions, download the `.deb` asset from the GitHub Release and install it with `sudo apt install ./compress-images_VERSION_all.deb`. The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.
+The latest release is [v0.2.4](https://github.com/rokmiksic/compress-images/releases/tag/v0.2.4).
 
-Windows users can download the `compress-images-windows-x64-setup.exe` installer from a GitHub Release. It installs the application, Start Menu shortcut, optional Desktop shortcut and uninstaller. The `compress-images-windows-x64.zip` portable bundle is also available; extract it and double-click `CompressImagesGUI.cmd`. Neither option requires a separate Python, GTK4, ImageMagick, FFmpeg or libheif installation.
+### Arch Linux, CachyOS and Omarchy
+
+Download the Arch package from the release and install it with:
+
+```sh
+sudo pacman -U compress-images-0.2.4-1-any.pkg.tar.zst
+```
+
+For a source checkout, use `makepkg -si` from `packaging/`. AUR publication is pending because AUR account registration was temporarily paused.
+
+### Debian, Ubuntu and Linux Mint
+
+Download the Debian asset from the release and install it with:
+
+```sh
+sudo apt install ./compress-images_0.2.4_all.deb
+```
+
+The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.
+
+### Windows 10/11 x64
+
+Download `compress-images-windows-x64-setup.exe` from the release. It installs the application, Start Menu shortcut, optional Desktop shortcut and uninstaller. The `compress-images-windows-x64.zip` portable bundle is also available; extract it and double-click `CompressImagesGUI.cmd`. Neither option requires a separate Python, GTK4, ImageMagick, FFmpeg or libheif installation.
+
+### macOS
+
+No signed macOS installer is published yet. macOS packaging remains planned; the current release assets support Arch-based Linux, Debian-based Linux and Windows x64.
 
 The GUI supports selecting or dragging in a complete folder, individual files, or ZIP archives anywhere across the window, a real per-file size limit, JPG/WEBP/AVIF/PNG output, recursive folders, and collision-safe names. Output is written below `compressed/`.
 
