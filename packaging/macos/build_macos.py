@@ -88,6 +88,7 @@ def main() -> None:
     with zipfile.ZipFile(RUNTIME_ARCHIVE) as archive:
         archive.extractall(RESOURCES / "runtime")
     unpack = RESOURCES / "runtime" / "bin" / "conda-unpack"
+    unpack.chmod(unpack.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     subprocess.run([str(unpack)], cwd=RESOURCES / "runtime", check=True)
     shutil.copy2(ROOT / "src" / "compress_images_core.py", RESOURCES / "app" / "compress_images_core.py")
     shutil.copy2(ROOT / "src" / "compress_images_gui.py", RESOURCES / "app" / "compress_images_gui.py")
