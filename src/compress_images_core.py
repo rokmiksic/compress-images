@@ -35,6 +35,8 @@ START_QUALITY = 90
 EMERGENCY_MIN_QUALITY = 20
 RESIZE_FACTOR = 0.88
 MIN_DIMENSION = 64
+AUTO_RESIZE_RATIO = 4.0
+AUTO_RESIZE_MIN_SCALE = 0.35
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,6 +63,12 @@ def parse_args() -> argparse.Namespace:
         default="jpg",
         help="Output format: jpg, webp, avif or png (default: jpg).",
     )
+    parser.add_argument(
+        "--max-dimension",
+        type=int,
+        metavar="PIXELS",
+        help="Maximum output width or height in pixels; aspect ratio is preserved.",
+    )
     return parser.parse_args()
 
 
@@ -73,6 +81,19 @@ def parse_size_mb(raw: str) -> float:
     if not math.isfinite(size_mb) or size_mb <= 0:
         raise ValueError("Size must be a positive number greater than zero.")
     return size_mb
+
+
+def parse_max_dimension(raw: str) -> int | None:
+    value = raw.strip()
+    if not value:
+        return None
+    try:
+        dimension = int(value)
+    except ValueError as exc:
+        raise ValueError("Maximum resolution must be a whole number of pixels.") from exc
+    if dimension < MIN_DIMENSION:
+        raise ValueError(f"Maximum resolution must be at least {MIN_DIMENSION} pixels.")
+    return dimension
 
 
 def prompt_for_size_mb() -> float:
@@ -242,6 +263,16 @@ def get_dimensions(image_path: Path) -> tuple[int, int]:
     return int(raw_width), int(raw_height)
 
 
+def has_srgb_profile(image_path: Path) -> bool:
+    completed = subprocess.run(
+        ["identify", "-format", "%[profile:icc]", f"{image_path}[0]"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return completed.returncode == 0 and "srgb" in completed.stdout.lower()
+
+
 def encode_candidate(
     source: Path,
     destination: Path,
@@ -250,6 +281,7 @@ def encode_candidate(
     quality: int,
     output_format: str,
     target_bytes: int | None = None,
+    preserve_srgb_profile: bool = False,
 ) -> int:
     args = [
         "magick",
@@ -261,9 +293,6 @@ def encode_candidate(
         "Lanczos",
         "-resize",
         f"{width}x{height}>",
-        "-sampling-factor",
-        "4:2:0",
-        "-strip",
         "-interlace",
         "Plane",
         "-quality",
@@ -273,6 +302,12 @@ def encode_candidate(
         "-define",
         "webp:method=6",
     ]
+    if output_format == "jpg":
+        # 4:4:4 avoids chroma bleeding and color artifacts on detailed photos.
+        args.extend(["-sampling-factor", "4:4:4"])
+    if not preserve_srgb_profile:
+        # ICC is color data, not disposable metadata. Keep it when present.
+        args.append("-strip")
     if output_format == "jpg" and target_bytes is not None:
         args.extend(["-define", f"jpeg:extent={target_bytes}B"])
     args.append(str(destination))
@@ -289,20 +324,30 @@ def find_best_candidate(
     min_quality: int,
     max_quality: int,
     output_format: str = "jpg",
+    preserve_srgb_profile: bool = False,
 ) -> tuple[Path, int] | tuple[None, None]:
     best_path: Path | None = None
     best_quality: int | None = None
 
     # Most images fit at the starting quality; avoid a full binary search in that case.
     initial_path = temp_dir / f"candidate_q{max_quality}.{output_format}"
-    initial_size = encode_candidate(source, initial_path, width, height, max_quality, output_format)
+    initial_size = encode_candidate(
+        source, initial_path, width, height, max_quality, output_format, preserve_srgb_profile=preserve_srgb_profile
+    )
     if initial_size <= max_bytes:
         return initial_path, initial_size
 
     if output_format == "jpg":
         extent_path = temp_dir / "candidate_extent.jpg"
         extent_size = encode_candidate(
-            source, extent_path, width, height, max_quality, output_format, max_bytes
+            source,
+            extent_path,
+            width,
+            height,
+            max_quality,
+            output_format,
+            max_bytes,
+            preserve_srgb_profile,
         )
         if extent_size <= max_bytes:
             return extent_path, extent_size
@@ -313,7 +358,10 @@ def find_best_candidate(
     while low <= high:
         quality = (low + high) // 2
         candidate_path = temp_dir / f"candidate_q{quality}.{output_format}"
-        size_bytes = encode_candidate(source, candidate_path, width, height, quality, output_format)
+        size_bytes = encode_candidate(
+            source, candidate_path, width, height, quality, output_format,
+            preserve_srgb_profile=preserve_srgb_profile,
+        )
         if size_bytes <= max_bytes:
             best_path = candidate_path
             best_quality = quality
@@ -327,13 +375,35 @@ def find_best_candidate(
     return best_path, best_path.stat().st_size
 
 
-def compress_image(source: Path, destination: Path, max_bytes: int, output_format: str = "jpg") -> int:
+def compress_image(
+    source: Path,
+    destination: Path,
+    max_bytes: int,
+    output_format: str = "jpg",
+    max_dimension: int | None = None,
+) -> int:
     with tempfile.TemporaryDirectory(prefix="compress-images-") as tmp:
         temp_dir = Path(tmp)
         prepared = prepare_input(source, temp_dir)
         original_width, original_height = get_dimensions(prepared)
         width = original_width
         height = original_height
+        preserve_srgb_profile = has_srgb_profile(prepared)
+
+        # Prefer a reasonable resolution over very low JPEG quality for severe reductions.
+        source_size = source.stat().st_size
+        if source_size > max_bytes * AUTO_RESIZE_RATIO:
+            auto_scale = max(
+                AUTO_RESIZE_MIN_SCALE,
+                math.sqrt((max_bytes * AUTO_RESIZE_RATIO) / source_size),
+            )
+            width = max(MIN_DIMENSION, int(width * auto_scale))
+            height = max(MIN_DIMENSION, int(height * auto_scale))
+
+        if max_dimension is not None and max(width, height) > max_dimension:
+            dimension_scale = max_dimension / max(width, height)
+            width = max(MIN_DIMENSION, int(width * dimension_scale))
+            height = max(MIN_DIMENSION, int(height * dimension_scale))
 
         while True:
             best_path, best_size = find_best_candidate(
@@ -345,6 +415,7 @@ def compress_image(source: Path, destination: Path, max_bytes: int, output_forma
                 MIN_QUALITY,
                 START_QUALITY,
                 output_format,
+                preserve_srgb_profile,
             )
             if best_path is not None and best_size is not None:
                 shutil.move(best_path, destination)
@@ -366,6 +437,7 @@ def compress_image(source: Path, destination: Path, max_bytes: int, output_forma
                 EMERGENCY_MIN_QUALITY,
                 START_QUALITY,
                 output_format,
+                preserve_srgb_profile,
             )
             if best_path is not None and best_size is not None:
                 shutil.move(best_path, destination)
@@ -386,6 +458,7 @@ def compress_batch(
     max_bytes: int,
     output_format: str,
     on_result=None,
+    max_dimension: int | None = None,
 ) -> list[tuple[int, Path, Path, int | None, Exception | None]]:
     """Compress a batch with bounded parallelism while reserving names first."""
     reserved_paths: set[Path] = set()
@@ -401,7 +474,7 @@ def compress_batch(
     results: list[tuple[int, Path, Path, int | None, Exception | None]] = []
     with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="compress") as executor:
         futures = {
-            executor.submit(compress_image, source, destination, max_bytes, output_format): (index, source, destination)
+            executor.submit(compress_image, source, destination, max_bytes, output_format, max_dimension): (index, source, destination)
             for index, source, destination in jobs
         }
         for future in as_completed(futures):
@@ -449,6 +522,10 @@ def main() -> int:
             return 2
 
     max_bytes = max(1, int(max_size_mb * 1024 * 1024))
+    max_dimension = args.max_dimension
+    if max_dimension is not None and max_dimension < MIN_DIMENSION:
+        print(f"Error: --max-dimension must be at least {MIN_DIMENSION} pixels.", file=sys.stderr)
+        return 2
     cwd = Path.cwd()
     output_root = cwd / "compressed"
     images = gather_images(cwd, args.recursive)
@@ -471,7 +548,15 @@ def main() -> int:
     skipped = 0
     total_original = 0
     total_compressed = 0
-    results = compress_batch(images, cwd, output_root, args.recursive, max_bytes, args.format)
+    results = compress_batch(
+        images,
+        cwd,
+        output_root,
+        args.recursive,
+        max_bytes,
+        args.format,
+        max_dimension=max_dimension,
+    )
     for index, source, destination, compressed_size, error in results:
         original_size = source.stat().st_size
         total_original += original_size

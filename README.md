@@ -10,6 +10,7 @@ This project is free and open-source software released under the [MIT License](L
 compress-images              # CLI prompt, JPG output
 compress-images 1 --recursive
 compress-images 0.5 --format webp
+compress-images 1 --max-dimension 2400
 compress-images-gui           # GTK4 application
 ```
 
@@ -23,7 +24,9 @@ The GUI supports selecting or dragging in a complete folder, individual files, o
 
 When a ZIP archive is selected, it is extracted only into a temporary directory. Images inside it are converted while preserving their internal folder structure. The original archive is never changed. Results are written below `compressed/<archive-name>/` and are also packed into `compressed/<archive-name>-compressed.zip`. ZIP paths are validated before extraction; absolute paths, parent-directory traversal and symbolic links are rejected.
 
-The size field accepts a decimal number and the adjacent unit selector accepts `MB` or `KB` (for example `0.5 MB`, `500 KB`, or `750 KB`). The limit is checked against the actual encoded file size.
+The size field accepts a decimal number and the adjacent unit selector accepts `MB` or `KB` (for example `0.5 MB`, `500 KB`, or `750 KB`). The GUI also offers a maximum resolution in pixels for the long edge; leave it blank to use automatic resolution reduction for severe compression. The limit is checked against the actual encoded file size.
+
+JPEG color handling preserves embedded sRGB ICC profiles and uses 4:4:4 chroma sampling to avoid unnecessary color bleeding. When a source is much larger than the requested target, the encoder reduces resolution before resorting to very low JPEG quality while preserving the aspect ratio.
 
 Batch processing uses bounded parallel workers and skips the full quality search when the first high-quality candidate already fits the limit. The application icon is included in standard Linux theme sizes.
 

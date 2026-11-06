@@ -20,11 +20,12 @@ from compress_images_core import (
     format_bytes,
     gather_images,
     is_zip_path,
+    parse_max_dimension,
     parse_size_mb,
 )
 
 SETTINGS_PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "compress-images" / "settings.json"
-DEFAULT_SETTINGS = {"language": "English", "unit": "MB", "format": "JPG", "recursive": True, "limit": "1"}
+DEFAULT_SETTINGS = {"language": "English", "unit": "MB", "format": "JPG", "recursive": True, "limit": "1", "resolution": ""}
 
 
 def load_settings():
@@ -61,7 +62,7 @@ TEXT = {
         "title": "Compress Images", "choose_folder": "Choose folder", "choose_files": "Choose images or ZIP",
         "subtitle": "Fast, safe batch image conversion",
         "drop_hint": "or drag images, folders or ZIP files here",
-        "nothing": "No source selected", "limit": "Maximum size per image", "format": "Output format", "unit": "Unit",
+        "nothing": "No source selected", "limit": "Maximum size per image", "resolution": "Maximum resolution (long edge, px)", "format": "Output format", "unit": "Unit",
         "recursive": "Include subfolders", "start": "Start compression", "help": "Original files are never changed.",
         "ready": "Ready", "select": "Choose a folder or one or more images first.", "done": "Done",
         "found": "Found", "converted": "converted", "failed": "failed", "saved": "Saved",
@@ -71,7 +72,7 @@ TEXT = {
         "title": "Stiskanje slik", "choose_folder": "Izberi mapo", "choose_files": "Izberi slike ali ZIP",
         "subtitle": "Hitro in varno paketno pretvarjanje slik",
         "drop_hint": "ali sem povleci slike, mape ali ZIP datoteke",
-        "nothing": "Vir ni izbran", "limit": "Največja velikost posamezne slike", "format": "Izhodni format", "unit": "Enota",
+        "nothing": "Vir ni izbran", "limit": "Največja velikost posamezne slike", "resolution": "Največja ločljivost (daljši rob, px)", "format": "Izhodni format", "unit": "Enota",
         "recursive": "Vključi podmape", "start": "Začni stiskanje", "help": "Originalne datoteke ostanejo nedotaknjene.",
         "ready": "Pripravljeno", "select": "Najprej izberi mapo ali eno oziroma več slik.", "done": "Končano",
         "found": "Najdenih", "converted": "pretvorjenih", "failed": "napak", "saved": "Prihranek",
@@ -81,7 +82,7 @@ TEXT = {
         "title": "Bilder komprimieren", "choose_folder": "Ordner wählen", "choose_files": "Bilder oder ZIP wählen",
         "subtitle": "Schnelle und sichere Stapelkonvertierung von Bildern",
         "drop_hint": "oder Bilder, Ordner oder ZIP-Dateien hierher ziehen",
-        "nothing": "Keine Quelle ausgewählt", "limit": "Maximale Größe pro Bild", "format": "Ausgabeformat", "unit": "Einheit",
+        "nothing": "Keine Quelle ausgewählt", "limit": "Maximale Größe pro Bild", "resolution": "Maximale Auflösung (lange Kante, px)", "format": "Ausgabeformat", "unit": "Einheit",
         "recursive": "Unterordner einbeziehen", "start": "Komprimierung starten", "help": "Originaldateien werden nie verändert.",
         "ready": "Bereit", "select": "Bitte zuerst einen Ordner oder Bilder auswählen.", "done": "Fertig",
         "found": "Gefunden", "converted": "konvertiert", "failed": "Fehler", "saved": "Gespart",
@@ -91,7 +92,7 @@ TEXT = {
         "title": "Komprimiranje slika", "choose_folder": "Odaberi mapu", "choose_files": "Odaberi slike ili ZIP",
         "subtitle": "Brza i sigurna grupna pretvorba slika",
         "drop_hint": "ili ovdje povuci slike, mape ili ZIP datoteke",
-        "nothing": "Izvor nije odabran", "limit": "Najveća veličina pojedine slike", "format": "Izlazni format", "unit": "Jedinica",
+        "nothing": "Izvor nije odabran", "limit": "Najveća veličina pojedine slike", "resolution": "Najveća razlučivost (dulji rub, px)", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podmape", "start": "Pokreni komprimiranje", "help": "Izvorne datoteke se ne mijenjaju.",
         "ready": "Spremno", "select": "Najprije odaberite mapu ili slike.", "done": "Gotovo",
         "found": "Pronađeno", "converted": "pretvoreno", "failed": "neuspješno", "saved": "Ušteđeno",
@@ -101,7 +102,7 @@ TEXT = {
         "title": "Kompresija slika", "choose_folder": "Izaberi fasciklu", "choose_files": "Izaberi slike ili ZIP",
         "subtitle": "Brza i sigurna grupna konverzija slika",
         "drop_hint": "ili ovde prevuci slike, fascikle ili ZIP datoteke",
-        "nothing": "Izvor nije izabran", "limit": "Najveća veličina slike", "format": "Izlazni format", "unit": "Jedinica",
+        "nothing": "Izvor nije izabran", "limit": "Najveća veličina slike", "resolution": "Najveća rezolucija (duža ivica, px)", "format": "Izlazni format", "unit": "Jedinica",
         "recursive": "Uključi podfascikle", "start": "Pokreni kompresiju", "help": "Originalne datoteke ostaju nepromenjene.",
         "ready": "Spremno", "select": "Prvo izaberi fasciklu ili slike.", "done": "Završeno",
         "found": "Pronađeno", "converted": "konvertovano", "failed": "neuspešno", "saved": "Ušteđeno",
@@ -111,7 +112,7 @@ TEXT = {
         "title": "Compresser les images", "choose_folder": "Choisir un dossier", "choose_files": "Choisir des images ou ZIP",
         "subtitle": "Conversion d'images rapide et sûre par lots",
         "drop_hint": "ou faites glisser des images, dossiers ou ZIP ici",
-        "nothing": "Aucune source sélectionnée", "limit": "Taille maximale par image", "format": "Format de sortie", "unit": "Unité",
+        "nothing": "Aucune source sélectionnée", "limit": "Taille maximale par image", "resolution": "Résolution maximale (bord long, px)", "format": "Format de sortie", "unit": "Unité",
         "recursive": "Inclure les sous-dossiers", "start": "Lancer la compression", "help": "Les originaux ne sont jamais modifiés.",
         "ready": "Prêt", "select": "Choisissez d'abord un dossier ou des images.", "done": "Terminé",
         "found": "Trouvées", "converted": "converties", "failed": "échecs", "saved": "Économisé",
@@ -183,9 +184,12 @@ class App(Gtk.Application):
         self.recursive_switch = Gtk.Switch(); self.recursive_switch.set_active(bool(self.settings.get("recursive", True))); self.recursive_switch.connect("notify::active", self.persist_settings)
         self.recursive_label = Gtk.Label(label="Include subfolders"); self.recursive_label.set_xalign(0)
         self.unit_label = Gtk.Label(label="Unit"); self.unit_label.set_xalign(0)
+        self.resolution_label = Gtk.Label(label="Maximum resolution (long edge, px)"); self.resolution_label.set_xalign(0)
+        self.resolution_entry = Gtk.Entry(); self.resolution_entry.set_text(str(self.settings.get("resolution", ""))); self.resolution_entry.set_placeholder_text("Auto / e.g. 1920"); self.resolution_entry.set_width_chars(14); self.resolution_entry.connect("changed", self.persist_settings)
         grid.attach(self.limit_label, 0, 0, 1, 1); grid.attach(self.limit_entry, 1, 0, 1, 1); grid.attach(self.unit_dropdown, 2, 0, 1, 1)
         grid.attach(self.format_label, 0, 1, 1, 1); grid.attach(self.format_dropdown, 1, 1, 1, 1)
         grid.attach(self.recursive_label, 0, 2, 1, 1); grid.attach(self.recursive_switch, 1, 2, 1, 1); outer.append(grid)
+        grid.attach(self.resolution_label, 0, 3, 1, 1); grid.attach(self.resolution_entry, 1, 3, 2, 1)
 
         self.start_button = Gtk.Button(label="Start compression"); self.start_button.add_css_class("suggested-action"); self.start_button.connect("clicked", self.start); outer.append(self.start_button)
         self.status = Gtk.Label(label="Ready"); self.status.set_xalign(0); self.status.set_wrap(True); self.status.set_margin_top(22); outer.append(self.status)
@@ -199,7 +203,7 @@ class App(Gtk.Application):
         self.title_label.set_label(self.t("title")); self.subtitle_label.set_label(self.t("subtitle"))
         self.folder_button.set_label(self.t("choose_folder")); self.files_button.set_label(self.t("choose_files"))
         self.drop_hint_label.set_label(self.t("drop_hint"))
-        self.limit_label.set_label(self.t("limit")); self.unit_label.set_label(self.t("unit")); self.format_label.set_label(self.t("format")); self.recursive_label.set_label(self.t("recursive"))
+        self.limit_label.set_label(self.t("limit")); self.resolution_label.set_label(self.t("resolution")); self.unit_label.set_label(self.t("unit")); self.format_label.set_label(self.t("format")); self.recursive_label.set_label(self.t("recursive"))
         self.start_button.set_label(self.t("start")); self.help_label.set_label(self.t("help"))
         if not self.source_paths: self.source_label.set_label(self.t("nothing"))
         self.persist_settings()
@@ -213,6 +217,7 @@ class App(Gtk.Application):
             "format": self.format_dropdown.get_selected_item().get_string(),
             "recursive": self.recursive_switch.get_active(),
             "limit": self.limit_entry.get_text(),
+            "resolution": self.resolution_entry.get_text(),
         })
 
     def on_close(self, *_):
@@ -270,16 +275,18 @@ class App(Gtk.Application):
 
     def start(self, *_):
         if not self.source_paths: self.status.set_label(self.t("select")); return
-        try: amount = parse_size_mb(self.limit_entry.get_text())
+        try:
+            amount = parse_size_mb(self.limit_entry.get_text())
+            max_dimension = parse_max_dimension(self.resolution_entry.get_text())
         except ValueError as exc: self.status.set_label(f"{self.t('error')}: {exc}"); return
         recursive = self.recursive_switch.get_active()
         fmt = self.format_dropdown.get_selected_item().get_string().lower()
         unit = self.unit_dropdown.get_selected_item().get_string()
         max_bytes = int(amount * (1024 if unit == "KB" else 1024 * 1024))
         self.start_button.set_sensitive(False); self.status.set_label(self.t("ready") + "...")
-        threading.Thread(target=self.process, args=(max_bytes, recursive, fmt), daemon=True).start()
+        threading.Thread(target=self.process, args=(max_bytes, recursive, fmt, max_dimension), daemon=True).start()
 
-    def process(self, max_bytes, recursive_setting, fmt):
+    def process(self, max_bytes, recursive_setting, fmt, max_dimension):
         tx = self.ui_text
         if self.folder_mode:
             root = self.source_paths[0]; images = gather_images(root, recursive_setting); output_root = root / "compressed"; recursive = recursive_setting
@@ -318,7 +325,7 @@ class App(Gtk.Application):
 
         if images:
             lines.append(f"{tx['found']} {len(images)}")
-            collect(compress_batch(images, root, output_root, recursive, max_bytes, fmt, report))
+            collect(compress_batch(images, root, output_root, recursive, max_bytes, fmt, report, max_dimension))
 
         for archive in ([] if self.folder_mode else zip_sources):
             try:
@@ -338,6 +345,7 @@ class App(Gtk.Application):
                         max_bytes,
                         fmt,
                         lambda result: report(result, extracted_root),
+                        max_dimension,
                     )
                     collect(archive_results)
                     if any(error is None for _, _, _, _, error in archive_results):
