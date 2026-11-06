@@ -1,8 +1,8 @@
 # AUR release checklist
 
 1. Create a public GitHub repository named `compress-images` and copy this directory into it.
-2. The package source points to `rokmiksic/compress-images`; keep the source tag aligned with the current release, currently `v0.2.4`.
-3. Commit and create a release tag matching `pkgver`, currently `v0.2.4`.
+2. The package source points to `rokmiksic/compress-images`; keep the source tag aligned with the current release, currently `v0.2.5`.
+3. Commit and create a release tag matching `pkgver`, currently `v0.2.5`.
 4. Build locally with `makepkg -si` and test both `compress-images` and `compress-images-gui`.
 5. Create the AUR repository `compress-images` and push `PKGBUILD` plus the generated `.SRCINFO`.
 

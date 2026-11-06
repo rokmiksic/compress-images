@@ -18,14 +18,14 @@ The command-line interface uses English prompts and messages. The GUI language c
 
 ## Installation
 
-The latest release is [v0.2.4](https://github.com/rokmiksic/compress-images/releases/tag/v0.2.4).
+The latest release is [v0.2.5](https://github.com/rokmiksic/compress-images/releases/tag/v0.2.5).
 
 ### Arch Linux, CachyOS and Omarchy
 
 Download the Arch package from the release and install it with:
 
 ```sh
-sudo pacman -U compress-images-0.2.4-1-any.pkg.tar.zst
+sudo pacman -U compress-images-0.2.5-1-any.pkg.tar.zst
 ```
 
 For a source checkout, use `makepkg -si` from `packaging/`. AUR publication is pending because AUR account registration was temporarily paused.
@@ -35,7 +35,7 @@ For a source checkout, use `makepkg -si` from `packaging/`. AUR publication is p
 Download the Debian asset from the release and install it with:
 
 ```sh
-sudo apt install ./compress-images_0.2.4_all.deb
+sudo apt install ./compress-images_0.2.5_all.deb
 ```
 
 The package declares GTK4, ImageMagick, FFmpeg and libheif as dependencies.
